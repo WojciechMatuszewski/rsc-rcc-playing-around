@@ -1,0 +1,37 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  posts(limit: Int!, cursor: String): PostsConnection!
+}
+
+type PostsConnection {
+  cursor: String
+  posts: [Post!]!
+}
+
+type Mutation {
+  createPost(post: PostInput!): Post!
+  deletePost(id: ID!): Post!
+
+  upVotePost(id: ID!): Post!
+  downVotePost(id: ID!): Post!
+}
+
+# TODO: how to handle the content as a separate entity?
+type Post {
+  id: ID!
+  title: String!
+  content: String!
+  author: String!
+  upVotes: Int!
+  downVotes: Int!
+}
+
+input PostInput {
+  title: String!
+  content: String!
+  author: String!
+}
