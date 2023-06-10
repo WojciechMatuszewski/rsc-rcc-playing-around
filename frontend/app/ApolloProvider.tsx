@@ -37,11 +37,14 @@ function makeClient() {
               merge(existing = {}, incoming, { readField }) {
                 const existingPosts = existing.posts ?? [];
                 const incomingPosts = incoming.posts ?? [];
-                console.log({ existing, incoming });
-                return {
-                  cursor: incoming.cursor,
+                const result = {
+                  /**
+                   * Typename was missing so the fragments did not resolve.
+                   */
+                  ...incoming,
                   posts: [...existingPosts, ...incomingPosts]
                 };
+                return result;
               }
             }
           }

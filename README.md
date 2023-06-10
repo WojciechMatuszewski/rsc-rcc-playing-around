@@ -47,6 +47,20 @@
 
       - I **wonder if the `useFormStatus` hook would not be a good place to have an error variable**.
 
+- The **`__typename` seem to be crucial for fragments to work as expected**.
+
+  - While merging the pagination results, I forgot about to include the `__typename` property into the result. This **resulted in fragments returning no data**.
+
+- The **`loading.tsx` controls whether the first load of the page will show the suspense boundary (the loading file) or block on the data fetch**.
+
+  - I recon this could be pretty neat for SEO – if you want to show the content upfront. Of course there is also a cost associated with blocking the rendering till we have the data.
+
+- **I though that the new CSS dynamic viewport units will solve the issue with horizontal scrollbar when using `100vw` but that is not the case**.
+
+  - I'm referring to [these values](https://www.bram.us/2021/07/08/the-large-small-and-dynamic-viewports/).
+
+  - See [https://github.com/w3c/csswg-drafts/issues/6026#issuecomment-1297193581](this issue).
+
 ## Summary
 
 - In my humble opinion, the server actions are NOT yet ready for prime time and will not be for a long time.
