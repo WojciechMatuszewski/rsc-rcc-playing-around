@@ -61,6 +61,28 @@
 
   - See [https://github.com/w3c/csswg-drafts/issues/6026#issuecomment-1297193581](this issue).
 
+- From my testing, the RCC `action` prop has some kind of delay in-between I press the button to initialize it, and the moment the UI starts rendering.
+
+  - Pretty weird stuff. **Using the native `onSubmit` feels a bit faster**. I do not see any additional requests made by Next, like in the case of a server action.
+
+    - Maybe parsing the form takes some time? It is an async action so the code might end up in the next tick of the event loop?
+
+- The `useTransition` API is really helpful when dealing with _suspense-enabled_ data-fetching functions like `useSuspenseQuery`.
+
+  - In my case, I wanted to show the loading spinner when the user clicks the "fetch more" button. Since the `useSuspenseQuery` suspends every time user hits this button, it's not possible to show the loading unless you wrap the `fetchMore` with transition.
+
+    - It makes sense as the documentation clearly states that
+
+      > If some state update causes a component to suspend, that state update should be wrapped in a transition.
+
+- **If you use a RCC at the "top-level" you pretty much have no way of rendering the RSC as a child somewhere down the tree**.
+
+  - Of course **you can use children prop**, but imagine wanting to use a RCC for some leaf-level component (or close to a leaf).
+
+    - I understand that RCCs might not be good for leafs, but still, by using RCC at the "parent" you backed yourself into the corner.
+
+      - Of course one can **drill the props with `children`**.
+
 ## Summary
 
 - In my humble opinion, the server actions are NOT yet ready for prime time and will not be for a long time.
