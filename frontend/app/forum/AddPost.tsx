@@ -1,10 +1,16 @@
 "use client";
 
 import { useMutation } from "@apollo/client";
-import { FormEventHandler, useRef, useTransition } from "react";
+import { usePrevious } from "@react-hookz/web";
+import { useRouter } from "next/navigation";
+import {
+  FormEventHandler,
+  useLayoutEffect,
+  useRef,
+  useTransition
+} from "react";
 import { graphql } from "./generated";
 import { CreatePostDocument } from "./generated/graphql";
-import { useRouter } from "next/navigation";
 
 const CreatePostMutation = graphql(`
   mutation CreatePost($post: PostInput!) {
@@ -19,9 +25,15 @@ export const AddPost = () => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const previousPending = usePrevious(isPending);
+  useLayoutEffect(() => {
+    if (previousPending && !isPending) {
+      dialogRef.current?.close();
+    }
+  }, [previousPending, isPending]);
 
+  const router = useRouter();
   const [createPost, { loading }] = useMutation(CreatePostDocument, {
     update(cache, { data }) {
       if (!data) {
@@ -48,6 +60,8 @@ export const AddPost = () => {
       /**
        * How to handle this state there the next page transition is slow.
        * When should I close the modal? Should I use `useEffect` on the `isPending`?
+       *
+       * The answer: I could not find any other way, especially since this call is synchronous.
        */
       startTransition(() => {
         router.push(`/forum/post/${data.createPost.id}`);
@@ -60,41 +74,45 @@ export const AddPost = () => {
     dialogRef.current?.showModal();
   };
 
-  const handleOnSubmit: FormEventHandler<HTMLFormElement> = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+  const handleOnCancel = () => {
+    dialogRef.current?.close();
+  };
+
+  const handleOnSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const { title, content, author } = Object.fromEntries(formData.entries());
 
     await createPost({
       variables: {
         post: {
-          title: formData.get("title") as string,
-          content: formData.get("content") as string,
-          author: formData.get("author") as string
+          title,
+          content,
+          author
         }
       }
     });
   };
 
+  const isLoading = loading || isPending;
   return (
     <>
       <div className="fixed bottom-6 right-12">
-        <button className="btn" onClick={handleOnDialogOpen}>
+        <button className="btn btn-primary" onClick={handleOnDialogOpen}>
           Add post
         </button>
       </div>
       <dialog ref={dialogRef} id="create-post-modal" className="modal">
         <form
           ref={formRef}
-          // We cannot use the `action` prop here since we are overriding the `method`
-          method="dialog"
           className="modal-box max-w-xl"
+          // Using the `action` here feels a bit slow. The interaction is kind of delayed?
           onSubmit={handleOnSubmit}
         >
-          <fieldset disabled={loading || isPending}>
+          <fieldset disabled={isLoading}>
             <button
-              onClick={() => {
-                dialogRef.current?.close();
-              }}
+              onClick={handleOnCancel}
               type="button"
               className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
             >
@@ -135,14 +153,15 @@ export const AddPost = () => {
             <div className="flex gap-4">
               <button type="submit" className="btn btn-accent">
                 Create post
+                {isLoading ? (
+                  <span className="loading loading-spinner"></span>
+                ) : null}
               </button>
               <div className="dialog-action">
                 <button
                   className="btn btn-neutral"
                   type="button"
-                  onClick={() => {
-                    dialogRef.current?.close();
-                  }}
+                  onClick={handleOnCancel}
                 >
                   Cancel
                 </button>

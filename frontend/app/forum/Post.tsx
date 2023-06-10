@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FragmentType, graphql, useFragment } from "./generated";
-import { gql } from "@apollo/client";
+import { DeletePost } from "./DeletePost";
 
 const PostList_PostFragment = graphql(`
   fragment PostList_PostFragment on Post {
@@ -18,13 +18,16 @@ export const PostItem = ({
   const { title, author, id } = useFragment(PostList_PostFragment, post);
   return (
     <li className="flex flex-col gap-1 m-0 p-0">
-      <Link className="link link-hover text-lg" href={`/forum/post/${id}`}>
+      <Link
+        className="link link-hover text-lg self-start"
+        href={`/forum/post/${id}`}
+      >
         {title}
       </Link>
-      <div className="flex flex-row gap-1 text-sm">
-        <span>{author}</span>
+      <div className="flex flex-row gap-1 text-sm align-center">
+        <span className="inline-block">By {author}</span>
         <div className="divider divider-horizontal m-0" />
-        <span>2023-02-02:300</span>
+        <DeletePost postId={id} />
       </div>
     </li>
   );
