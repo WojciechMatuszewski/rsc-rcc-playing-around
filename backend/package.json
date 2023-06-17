@@ -7,16 +7,16 @@
   },
   "devDependencies": {
     "@aws-appsync/utils": "1.2.5",
-    "@types/aws-lambda": "8.10.115",
-    "aws-cdk": "2.81.0",
-    "esbuild": "0.17.19"
+    "@types/aws-lambda": "8.10.119",
+    "aws-cdk": "2.84.0",
+    "esbuild": "0.18.4"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "3.345.0",
-    "@aws-sdk/lib-dynamodb": "3.345.0",
-    "@aws-sdk/util-dynamodb": "3.345.0",
-    "aws-cdk-lib": "2.81.0",
-    "constructs": "10.0.0",
+    "@aws-sdk/client-dynamodb": "3.354.0",
+    "@aws-sdk/lib-dynamodb": "3.354.0",
+    "@aws-sdk/util-dynamodb": "3.354.0",
+    "aws-cdk-lib": "2.84.0",
+    "constructs": "10.2.52",
     "source-map-support": "0.5.21",
     "ulid": "2.3.0"
   }

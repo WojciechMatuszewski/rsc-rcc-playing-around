@@ -83,6 +83,14 @@
 
       - Of course one can **drill the props with `children`**.
 
+- The **`@property` CSS syntax appears to be scoped to the whole document**. I could not find a way to scope it to a single class, like in the case of custom CSS properties.
+
+  - Such a pity. Now I have to bring in a library to implement and animated counter!
+
+  - If I could scope them to a given class, then [this technique becomes very viable](https://css-tricks.com/animating-number-counters/).
+
+    - After trying for a single element, this technique does not play well with incrementing the counter by very small numbers. The effect is there when incrementing with a very large step.
+
 ## Summary
 
 - In my humble opinion, the server actions are NOT yet ready for prime time and will not be for a long time.

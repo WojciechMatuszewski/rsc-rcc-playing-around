@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FragmentType, graphql, useFragment } from "./generated";
-import { DeletePost } from "./DeletePost";
+import { DeletePost, DownVotePost, UpVotePost } from "./post/PostActions";
 
 const PostList_PostFragment = graphql(`
   fragment PostList_PostFragment on Post {
@@ -24,9 +24,11 @@ export const PostItem = ({
       >
         {title}
       </Link>
-      <div className="flex flex-row gap-1 text-sm align-center">
-        <span className="inline-block">By {author}</span>
+      <div className="flex flex-row gap-1 text-sm items-center">
+        <span className="flex items-center mr-2">By {author}</span>
         <div className="divider divider-horizontal m-0" />
+        <UpVotePost />
+        <DownVotePost />
         <DeletePost postId={id} />
       </div>
     </li>
