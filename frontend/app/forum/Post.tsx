@@ -7,6 +7,8 @@ const PostList_PostFragment = graphql(`
     id
     title
     author
+    upVotes
+    downVotes
   }
 `);
 
@@ -15,7 +17,10 @@ export const PostItem = ({
 }: {
   post: FragmentType<typeof PostList_PostFragment>;
 }) => {
-  const { title, author, id } = useFragment(PostList_PostFragment, post);
+  const { title, author, id, upVotes, downVotes } = useFragment(
+    PostList_PostFragment,
+    post
+  );
   return (
     <li className="flex flex-col gap-1 m-0 p-0">
       <Link
@@ -27,8 +32,8 @@ export const PostItem = ({
       <div className="flex flex-row gap-1 text-sm items-center">
         <span className="flex items-center mr-2">By {author}</span>
         <div className="divider divider-horizontal m-0" />
-        <UpVotePost />
-        <DownVotePost />
+        <UpVotePost upVotes={upVotes} postId={id} />
+        <DownVotePost downVotes={downVotes} postId={id} />
         <DeletePost postId={id} />
       </div>
     </li>

@@ -35,7 +35,7 @@ export class BackendStack extends cdk.Stack {
       this,
       "GetPostsLambda",
       {
-        entry: path.join(__dirname, "./resolvers/get-posts.ts"),
+        entry: path.join(__dirname, "./resolvers/posts.ts"),
         handler: "handler",
         environment: {
           TABLE_NAME: dataTable.tableName
@@ -61,6 +61,16 @@ export class BackendStack extends cdk.Stack {
       dataSource: getPostsLambdaDataSource,
       typeName: "Query",
       fieldName: "posts"
+    });
+
+    new JSResolver(this, "GetPostResolver", {
+      api,
+      dataSource,
+      typeName: "Query",
+      fieldName: "post",
+      code: cdk.aws_appsync.AssetCode.fromAsset(
+        path.join(__dirname, "./resolvers/post.ts")
+      )
     });
 
     new JSResolver(this, "CreatePostResolver", {
@@ -100,6 +110,46 @@ export class BackendStack extends cdk.Stack {
       fieldName: "downVotePost",
       code: cdk.aws_appsync.AssetCode.fromAsset(
         path.join(__dirname, "./resolvers/downvote-post.ts")
+      )
+    });
+
+    new JSResolver(this, "CommentPostResolver", {
+      api,
+      dataSource,
+      typeName: "Mutation",
+      fieldName: "commentPost",
+      code: cdk.aws_appsync.AssetCode.fromAsset(
+        path.join(__dirname, "./resolvers/comment-post.ts")
+      )
+    });
+
+    new JSResolver(this, "PostCommentsResolver", {
+      api,
+      dataSource,
+      typeName: "Query",
+      fieldName: "postComments",
+      code: cdk.aws_appsync.AssetCode.fromAsset(
+        path.join(__dirname, "./resolvers/post-comments.ts")
+      )
+    });
+
+    new JSResolver(this, "CommentRepliesResolver", {
+      api,
+      dataSource,
+      typeName: "Query",
+      fieldName: "commentReplies",
+      code: cdk.aws_appsync.AssetCode.fromAsset(
+        path.join(__dirname, "./resolvers/comment-replies.ts")
+      )
+    });
+
+    new JSResolver(this, "ReplyCommentResolver", {
+      api,
+      dataSource,
+      typeName: "Mutation",
+      fieldName: "replyComment",
+      code: cdk.aws_appsync.AssetCode.fromAsset(
+        path.join(__dirname, "./resolvers/reply-comment.ts")
       )
     });
   }

@@ -5,11 +5,10 @@ schema {
 
 type Query {
   posts(limit: Int!, cursor: String): PostsConnection!
-}
+  post(id: ID!): Post!
 
-type PostsConnection {
-  cursor: String
-  posts: [Post!]!
+  postComments(postId: ID!, limit: Int!, cursor: String): CommentsConnection!
+  commentReplies(commentId: ID!, limit: Int!, cursor: String): ReplyConnection!
 }
 
 type Mutation {
@@ -18,9 +17,11 @@ type Mutation {
 
   upVotePost(id: ID!): Post!
   downVotePost(id: ID!): Post!
+
+  commentPost(id: ID!, comment: CommentInput!): Comment!
+  replyComment(id: ID!, comment: ReplyInput!): Reply!
 }
 
-# TODO: how to handle the content as a separate entity?
 type Post {
   id: ID!
   title: String!
@@ -34,4 +35,40 @@ input PostInput {
   title: String!
   content: String!
   author: String!
+}
+
+type PostsConnection {
+  cursor: String
+  posts: [Post!]!
+}
+
+input CommentInput {
+  content: String!
+}
+
+type Comment {
+  id: ID!
+  postId: ID!
+  content: String!
+}
+
+type CommentsConnection {
+  cursor: String
+  comments: [Comment!]!
+}
+
+input ReplyInput {
+  content: String!
+}
+
+type Reply {
+  id: ID!
+  commentId: ID!
+  # postId: ID!
+  content: String!
+}
+
+type ReplyConnection {
+  cursor: String
+  replies: [Reply!]!
 }

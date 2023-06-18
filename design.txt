@@ -1,0 +1,15 @@
+- List all the Comments for a given post (pagination)
+
+- List all the Replies for a given comment (pagination)
+
+    - Recursive!
+
+
+PK: POST#POST_ID
+SK: COMMENT#COMMENT_ID
+
+PK: COMMENT#COMMENT_COMMENT_ID
+SK: REPLY#COMMENT_ID(the reply)
+
+
+

@@ -126,7 +126,7 @@ export const AddPost = () => {
               id="postAuthor"
               type="text"
               name="author"
-              className="input input-bordered w-full mb-4"
+              className="input input-primary w-full mb-4"
               placeholder="Author"
               required
             />
@@ -137,7 +137,7 @@ export const AddPost = () => {
               id="postTitle"
               type="text"
               name="title"
-              className="input input-bordered w-full mb-4"
+              className="input input-primary w-full mb-4"
               placeholder="Title"
               required
             />
@@ -146,7 +146,7 @@ export const AddPost = () => {
             </label>
             <textarea
               name="content"
-              className="textarea textarea-bordered h-24 w-full mb-4 resize-none"
+              className="textarea textarea-primary h-24 w-full mb-4 resize-none"
               placeholder="Content of your post"
               required
             ></textarea>

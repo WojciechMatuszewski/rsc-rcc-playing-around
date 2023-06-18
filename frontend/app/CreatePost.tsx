@@ -67,17 +67,34 @@ export const CreatePost = () => {
     >
       <div className="flex flex-col gap-2">
         <label htmlFor="title">Title</label>
-        <input type="text" name="title" id="title" required />
+        <input
+          type="text"
+          className="input input-primary"
+          name="title"
+          id="title"
+          required
+        />
       </div>
 
       <div className="flex flex-col gap-2">
         <label htmlFor="author">Author</label>
-        <input type="text" name="author" id="author" required />
+        <input
+          type="text"
+          className="input input-primary"
+          name="author"
+          id="author"
+          required
+        />
       </div>
 
       <div className="flex flex-col gap-2">
         <label htmlFor="content">Content</label>
-        <textarea id="content" name="content" required />
+        <textarea
+          id="content"
+          className="textarea textarea-primary"
+          name="content"
+          required
+        />
       </div>
 
       <button

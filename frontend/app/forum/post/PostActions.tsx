@@ -1,49 +1,81 @@
 "use client";
 
 import { useMutation } from "@apollo/client";
+import { AnimatePresence, m, LazyMotion, domAnimation } from "framer-motion";
 import { ArrowDown, ArrowUp, Trash } from "react-feather";
-import { DeletePostDocument } from "../generated/graphql";
 import { graphql } from "../generated";
-import { useEffect, useRef } from "react";
+import {
+  DeletePostDocument,
+  DownVotePostDocument,
+  UpVotePostDocument
+} from "../generated/graphql";
 
-export const UpVotePost = () => {
-  const ref = useRef<HTMLDivElement>(null);
+const UpVotePostMutation = graphql(`
+  mutation UpVotePost($id: ID!) {
+    upVotePost(id: $id) {
+      id
+      upVotes
+    }
+  }
+`);
 
-  useEffect(() => {
-    setInterval(() => {
-      if (ref.current) {
-        let currentNumber = ref.current.style.getPropertyValue("--num");
-        if (Number.isNaN(currentNumber) || currentNumber === "NaN") {
-          currentNumber = "0";
-        }
-        // console.log({ currentNumber });
-
-        console.log({
-          currentNumber,
-          setting: `${parseFloat(currentNumber) + 1}`
-        });
-
-        ref.current.style.setProperty(
-          "--num",
-          `${parseFloat(currentNumber) + 1}`
-        );
-      }
-    }, 1000);
-  }, []);
+export const UpVotePost = ({
+  upVotes,
+  postId
+}: {
+  upVotes: number;
+  postId: string;
+}) => {
+  const [upVote, { loading, error }] = useMutation(UpVotePostDocument, {
+    variables: { id: postId }
+  });
 
   return (
-    <button className="btn btn-ghost btn-sm">
-      <ArrowUp size="16px" />
-      <div className="counter" ref={ref}></div>
+    <button
+      disabled={loading}
+      className="btn btn-ghost btn-sm"
+      onClick={() => {
+        upVote();
+      }}
+      type="button"
+    >
+      <ArrowUp size="16px" className="col-start-1 col-end-2" />
+      <Counter count={upVotes} />
     </button>
   );
 };
 
-export const DownVotePost = () => {
+const DownVotePostMutation = graphql(`
+  mutation DownVotePost($id: ID!) {
+    downVotePost(id: $id) {
+      id
+      downVotes
+    }
+  }
+`);
+
+export const DownVotePost = ({
+  downVotes,
+  postId
+}: {
+  downVotes: number;
+  postId: string;
+}) => {
+  const [downVote, { loading, error }] = useMutation(DownVotePostDocument, {
+    variables: { id: postId }
+  });
+
   return (
-    <button className="btn btn-ghost btn-sm">
-      <ArrowDown size="16px" />
-      <span>20</span>
+    <button
+      disabled={loading}
+      className="btn btn-ghost btn-sm"
+      onClick={() => {
+        downVote();
+      }}
+      type="button"
+    >
+      <ArrowDown size="16px" className="col-start-1 col-end-2" />
+      <Counter count={downVotes} />
     </button>
   );
 };
@@ -97,5 +129,30 @@ export const DeletePost = ({ postId }: { postId: string }) => {
     >
       <Trash size="16px" color="hsl(var(--er))" />
     </button>
+  );
+};
+
+const loadFeatures = () => {
+  return import("framer-motion").then((res) => res.domAnimation);
+};
+
+const Counter = ({ count }: { count: number }) => {
+  return (
+    <div className="relative" style={{ fontVariantNumeric: "tabular-nums" }}>
+      <div className="opacity-0">{count}</div>
+      <LazyMotion features={loadFeatures} strict={true}>
+        <AnimatePresence initial={false}>
+          <m.div
+            style={{ position: "absolute", top: 0 }}
+            initial={{ opacity: 0, x: 0, y: -20 }}
+            animate={{ x: 0, y: 0, opacity: 1 }}
+            exit={{ x: 0, y: 20, opacity: 0 }}
+            key={count}
+          >
+            {count}
+          </m.div>
+        </AnimatePresence>
+      </LazyMotion>
+    </div>
   );
 };
