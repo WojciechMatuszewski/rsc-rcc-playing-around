@@ -16,7 +16,30 @@ const CommentPostMutation = graphql(`
 `);
 
 export const AddComment = ({ postId }: { postId: string }) => {
-  const [commentPost, { loading }] = useMutation(CommentPostDocument);
+  const [commentPost, { loading }] = useMutation(CommentPostDocument, {
+    update(cache, { data }) {
+      if (!data) {
+        return;
+      }
+      const { commentPost } = data;
+      cache.modify({
+        fields: {
+          postComments(
+            existingCommentsData = { comments: [] },
+            { toReference }
+          ) {
+            return {
+              ...existingCommentsData,
+              comments: [
+                toReference(commentPost),
+                ...existingCommentsData.comments
+              ]
+            };
+          }
+        }
+      });
+    }
+  });
   const formRef = useRef<HTMLFormElement>(null);
 
   return (

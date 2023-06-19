@@ -27,6 +27,7 @@ export function response(ctx: Context) {
   return {
     id,
     commentId,
-    ...restOfAttributes
+    ...restOfAttributes,
+    __typename: "CommentReply"
   };
 }

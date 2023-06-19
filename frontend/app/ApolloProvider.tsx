@@ -1,6 +1,4 @@
 "use client";
-import { concatPagination } from "@apollo/client/utilities";
-// ^ this file needs the "use client" pragma
 
 import {
   ApolloClient,
@@ -29,6 +27,8 @@ function makeClient() {
   return new ApolloClient({
     // use the `NextSSRInMemoryCache`, not the normal `InMemoryCache`
     cache: new NextSSRInMemoryCache({
+      possibleTypes: { Comment: ["PostComment", "CommentReply"] },
+
       typePolicies: {
         Query: {
           fields: {
@@ -43,6 +43,36 @@ function makeClient() {
                    */
                   ...incoming,
                   posts: [...existingPosts, ...incomingPosts]
+                };
+                return result;
+              }
+            },
+            postComments: {
+              keyArgs: ["id"],
+              merge(existing = {}, incoming, { readField }) {
+                const existingComments = existing.comments ?? [];
+                const incomingComments = incoming.comments ?? [];
+                const result = {
+                  /**
+                   * Typename was missing so the fragments did not resolve.
+                   */
+                  ...incoming,
+                  comments: [...existingComments, ...incomingComments]
+                };
+                return result;
+              }
+            },
+            commentReplies: {
+              keyArgs: ["commentId"],
+              merge(existing = {}, incoming, { readField }) {
+                const existingReplies = existing.replies ?? [];
+                const incomingReplies = incoming.replies ?? [];
+                const result = {
+                  /**
+                   * Typename was missing so the fragments did not resolve.
+                   */
+                  ...incoming,
+                  replies: [...existingReplies, ...incomingReplies]
                 };
                 return result;
               }

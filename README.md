@@ -91,6 +91,12 @@
 
     - After trying for a single element, this technique does not play well with incrementing the counter by very small numbers. The effect is there when incrementing with a very large step.
 
+- When using **GraphQL interfaces, you have to append the `__typename` to the result**. Otherwise the client will not be able to deduce which type is returned. It does make sense.
+
+- It is very **easy to introduce waterfalls when using nested data-structures and data-fetching for those structures in each component**.
+
+  - The way I build the comments is definitely not scalable.
+
 ## Summary
 
 - In my humble opinion, the server actions are NOT yet ready for prime time and will not be for a long time.

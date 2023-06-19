@@ -5,10 +5,20 @@ schema {
 
 type Query {
   posts(limit: Int!, cursor: String): PostsConnection!
+
   post(id: ID!): Post!
 
-  postComments(postId: ID!, limit: Int!, cursor: String): CommentsConnection!
-  commentReplies(commentId: ID!, limit: Int!, cursor: String): ReplyConnection!
+  postComments(
+    postId: ID!
+    limit: Int!
+    cursor: String
+  ): PostCommentsConnection!
+
+  commentReplies(
+    commentId: ID!
+    limit: Int!
+    cursor: String
+  ): CommentRepliesConnection!
 }
 
 type Mutation {
@@ -18,8 +28,8 @@ type Mutation {
   upVotePost(id: ID!): Post!
   downVotePost(id: ID!): Post!
 
-  commentPost(id: ID!, comment: CommentInput!): Comment!
-  replyComment(id: ID!, comment: ReplyInput!): Reply!
+  commentPost(id: ID!, comment: CommentInput!): PostComment!
+  replyComment(id: ID!, comment: ReplyInput!): CommentReply!
 }
 
 type Post {
@@ -42,33 +52,44 @@ type PostsConnection {
   posts: [Post!]!
 }
 
+# -------------- #
+
 input CommentInput {
   content: String!
 }
 
-type Comment {
+interface Comment {
   id: ID!
-  postId: ID!
   content: String!
 }
 
-type CommentsConnection {
+type PostComment implements Comment {
+  id: ID!
+  content: String!
+
+  postId: ID!
+}
+
+type PostCommentsConnection {
   cursor: String
   comments: [Comment!]!
 }
+
+# -------------- #
 
 input ReplyInput {
   content: String!
 }
 
-type Reply {
+type CommentReply implements Comment {
   id: ID!
+  content: String!
+
   commentId: ID!
   # postId: ID!
-  content: String!
 }
 
-type ReplyConnection {
+type CommentRepliesConnection {
   cursor: String
-  replies: [Reply!]!
+  replies: [Comment!]!
 }

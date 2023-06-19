@@ -8,7 +8,7 @@ import {
   PostCommentsDocument
 } from "../../generated/graphql";
 import { MessageCircle } from "react-feather";
-import { Suspense, useRef } from "react";
+import { Suspense, useRef, useTransition } from "react";
 
 const PostCommentsQuery = graphql(`
   query PostComments($postId: ID!, $limit: Int!, $cursor: String) {
@@ -23,54 +23,58 @@ const PostCommentsQuery = graphql(`
 `);
 
 export const PostComments = ({ postId }: { postId: string }) => {
-  const { data, error } = useSuspenseQuery(PostCommentsDocument, {
+  const { data, error, fetchMore } = useSuspenseQuery(PostCommentsDocument, {
     variables: {
       postId,
-      limit: 10
+      limit: 2
     }
   });
+  const [isPending, startTransition] = useTransition();
 
   if (error) {
     return <div>Error: {error.message}</div>;
   }
+  const canLoadMore = data.postComments.cursor !== null;
 
   return (
-    <ul className="list-none p-0 m-0">
-      {data.postComments.comments.map((comment) => {
-        return <Comment key={comment.id} comment={comment} />;
-      })}
-    </ul>
+    <>
+      <ul className="list-none p-0 m-0">
+        {data.postComments.comments.map((comment) => {
+          return <Comment key={comment.id} comment={comment} />;
+        })}
+      </ul>
+      {canLoadMore ? (
+        <button
+          className="btn btn-neutral btn-sm"
+          disabled={isPending}
+          onClick={() => {
+            startTransition(() => {
+              fetchMore({
+                variables: {
+                  cursor: data.postComments.cursor
+                }
+              });
+            });
+          }}
+        >
+          Load more
+        </button>
+      ) : null}
+    </>
   );
 };
 
 const PostComments_CommentFragment = graphql(`
   fragment PostComments_CommentFragment on Comment {
     id
-    postId
     content
   }
 `);
-
-const PostCommentsRepliesQuery = graphql(`
-  query PostCommentsReplies($commentId: ID!, $limit: Int!, $cursor: String) {
-    commentReplies(commentId: $commentId, limit: $limit, cursor: $cursor) {
-      cursor
-      replies {
-        id
-        commentId
-        content
-      }
-    }
-  }
-`);
-
-//   replyComment(id: ID!, comment: ReplyInput!): Reply!
 
 const PostCommentReply = graphql(`
   mutation PostCommentReply($id: ID!, $comment: ReplyInput!) {
     replyComment(id: $id, comment: $comment) {
       id
-      commentId
       content
     }
   }
@@ -82,14 +86,50 @@ const Comment = ({
   comment: FragmentType<typeof PostComments_CommentFragment>;
 }) => {
   const { content, id } = useFragment(PostComments_CommentFragment, comment);
-  const [commentReply, { loading }] = useMutation(PostCommentReplyDocument);
+  const [commentReply, { loading }] = useMutation(PostCommentReplyDocument, {
+    update: (cache, { data }) => {
+      if (!data) {
+        return;
+      }
+
+      cache.updateQuery(
+        {
+          query: PostCommentRepliesDocument,
+          /**
+           * We are using the connection directive
+           */
+          // @ts-ignore
+          variables: {
+            commentId: id
+          }
+        },
+        (dataInCache) => {
+          if (!dataInCache) {
+            return;
+          }
+          return {
+            ...dataInCache,
+            commentReplies: {
+              /**
+               * This will run a merge function.
+               * Since the merge function already merges the results with the cache, we do not have to do that here.
+               * If we did, we would be duplicating the data.
+               */
+              ...dataInCache.commentReplies,
+              replies: [data.replyComment]
+            }
+          };
+        }
+      );
+    }
+  });
 
   const formRef = useRef<HTMLFormElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   return (
     <>
-      <li>
+      <li className="p-0">
         <p className="mb-0">{content}</p>
         <button
           className="btn btn-xs btn-ghost -ml-2"
@@ -144,29 +184,37 @@ const Comment = ({
   );
 };
 
-const PostCommentReplies = graphql(`
-  query PostCommentReplies($commentId: ID!, $limit: Int!, $cursor: String) {
-    commentReplies(commentId: $commentId, limit: $limit, cursor: $cursor) {
-      cursor
-      replies {
-        id
-        commentId
-        content
-      }
-    }
-  }
-`);
-
 const CommentReplies = ({ commentId }: { commentId: string }) => {
-  const { data } = useSuspenseQuery(PostCommentRepliesDocument, {
-    variables: { commentId, limit: 10 }
+  const { data, fetchMore } = useSuspenseQuery(PostCommentRepliesDocument, {
+    variables: { commentId, limit: 1 }
   });
+  const canLoadMore = data.commentReplies.cursor !== null;
+
+  const [isPending, startTransition] = useTransition();
 
   return (
-    <ul>
-      {data.commentReplies.replies.map((reply) => {
-        return <li key={reply.id}>{reply.content}</li>;
-      })}
-    </ul>
+    <div className="border-s-2">
+      <ul className="list-none m-0 ml-1">
+        {data.commentReplies.replies.map((reply) => {
+          return <Comment comment={reply} key={reply.id} />;
+        })}
+      </ul>
+      {canLoadMore ? (
+        <button
+          className="btn btn-ghost btn-xs ml-1"
+          onClick={() => {
+            startTransition(() => {
+              fetchMore({
+                variables: {
+                  cursor: data.commentReplies.cursor
+                }
+              });
+            });
+          }}
+        >
+          + Load more
+        </button>
+      ) : null}
+    </div>
   );
 };

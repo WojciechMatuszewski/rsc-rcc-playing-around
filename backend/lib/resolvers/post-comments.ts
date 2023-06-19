@@ -30,7 +30,8 @@ export function response(ctx: Context) {
     return {
       id,
       postId,
-      ...restOfItem
+      ...restOfItem,
+      __typename: "PostComment"
     };
   });
 
