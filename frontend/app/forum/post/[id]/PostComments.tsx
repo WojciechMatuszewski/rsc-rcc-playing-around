@@ -40,7 +40,7 @@ export const PostComments = ({ postId }: { postId: string }) => {
     <>
       <ul className="list-none p-0 m-0">
         {data.postComments.comments.map((comment) => {
-          return <Comment key={comment.id} comment={comment} />;
+          return <Comment depthLevel={0} key={comment.id} comment={comment} />;
         })}
       </ul>
       {canLoadMore ? (
@@ -81,9 +81,11 @@ const PostCommentReply = graphql(`
 `);
 
 const Comment = ({
-  comment
+  comment,
+  depthLevel
 }: {
   comment: FragmentType<typeof PostComments_CommentFragment>;
+  depthLevel: number;
 }) => {
   const { content, id } = useFragment(PostComments_CommentFragment, comment);
   const [commentReply, { loading }] = useMutation(PostCommentReplyDocument, {
@@ -129,18 +131,29 @@ const Comment = ({
 
   return (
     <>
-      <li className="p-0">
-        <p className="mb-0">{content}</p>
-        <button
-          className="btn btn-xs btn-ghost -ml-2"
-          onClick={() => {
-            dialogRef.current?.showModal();
-          }}
-        >
-          Reply <MessageCircle size="14px" />
-        </button>
+      <li className="p-0 m-0 relative block comment-list-item">
+        <div className={`flex not-prose gap-3 py-6 relative comment`}>
+          <div className="avatar selfstart">
+            <div className="w-12 h-12 rounded-full self-start">
+              <img src="https://daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg" />
+            </div>
+          </div>
+          <div>
+            <p className="mb-0 bg-neutral px-3 py-2 rounded prose break-words">
+              {content}
+            </p>
+            <button
+              className="btn btn-xs btn-link text-accent no-underline -ml-2"
+              onClick={() => {
+                dialogRef.current?.showModal();
+              }}
+            >
+              Reply <MessageCircle size="14px" />
+            </button>
+          </div>
+        </div>
         <Suspense fallback={<div className="loading loading-spinner" />}>
-          <CommentReplies commentId={id} />
+          <CommentReplies depthLevel={depthLevel + 1} commentId={id} />
         </Suspense>
       </li>
       <dialog ref={dialogRef} className="modal" id={`reply-modal-${id}`}>
@@ -184,24 +197,36 @@ const Comment = ({
   );
 };
 
-const CommentReplies = ({ commentId }: { commentId: string }) => {
+const CommentReplies = ({
+  commentId,
+  depthLevel
+}: {
+  commentId: string;
+  depthLevel: number;
+}) => {
   const { data, fetchMore } = useSuspenseQuery(PostCommentRepliesDocument, {
     variables: { commentId, limit: 1 }
   });
   const canLoadMore = data.commentReplies.cursor !== null;
-
   const [isPending, startTransition] = useTransition();
 
+  if (data.commentReplies.replies.length === 0) {
+    return null;
+  }
+
   return (
-    <div className="border-s-2">
-      <ul className="list-none m-0 ml-1">
+    <div>
+      <ul className={`list-none m-0 pl-${depthLevel * 3}`}>
         {data.commentReplies.replies.map((reply) => {
-          return <Comment comment={reply} key={reply.id} />;
+          return (
+            <Comment depthLevel={depthLevel} comment={reply} key={reply.id} />
+          );
         })}
       </ul>
       {canLoadMore ? (
         <button
           className="btn btn-ghost btn-xs ml-1"
+          disabled={isPending}
           onClick={() => {
             startTransition(() => {
               fetchMore({
