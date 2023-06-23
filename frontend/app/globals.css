@@ -2,29 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-.comment-list-item .comment-list-item::before {
+.post-comments ul {
+  position: relative;
+}
+
+.post-comments li {
+  position: relative;
+}
+
+.post-comments li:has(ul) li:not(:last-of-type)::before {
   content: "";
-  height: 24px;
+  height: calc(100% + 48px + 24px);
+  width: 2px;
+  background: hsl(var(--n));
+  position: absolute;
+  inset-inline-start: -24px;
+  inset-block-start: calc(-48px);
+}
+
+.post-comments ul:has(ul) ul li::after {
+  content: "";
   width: 24px;
   position: absolute;
-  inset-inline-start: -2px;
+  height: 24px;
+  border-left: 2px solid hsl(var(--n));
+  border-bottom: 2px solid hsl(var(--n));
+  border-bottom-left-radius: 15px;
   inset-block-start: 24px;
-  -webkit-border-start: 2px solid hsl(var(--nc));
-  border-inline-start: 2px solid hsl(var(--nc));
-  border-bottom: 2px solid hsl(var(--nc));
-  border-end-start-radius: 10px;
+  inset-inline-start: -24px;
 }
 
-.comment-list-item:has(ul) .comment::after {
+.post-comments li:has(ul) > .comment-item::after {
   content: "";
-  height: calc(100% - 74px / 2);
-  inset-block-start: 74px;
+  height: calc(100% - 48px);
   width: 2px;
-  background: hsl(var(--nc));
+  background: hsl(var(--n));
   position: absolute;
   inset-inline-start: 24px;
-}
-
-.comment-list-item:has(ul) .comment-list-item {
-  padding-inline-start: 12px;
+  inset-block-start: calc(48px + 24px);
 }

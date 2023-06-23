@@ -97,6 +97,24 @@
 
   - The way I build the comments is definitely not scalable.
 
+- One **cannot use dynamically created classes when working with Tailwind**.
+
+  - [Consult the docs on this one](https://tailwindcss.com/docs/content-configuration#dynamic-class-names).
+
+  - I guess it's related on how they extract the CSS from the code.
+
+- You **cannot nest the `:has` selectors inside each other**.
+
+  - This means, the following will not work `li:has(ul:not(:has(ul)))`
+
+  - It would be so awesome to be able to do this.
+
+- If you set the `keyArgs` wrong in the Apollo Cache, you will see stale results.
+
+  - In my case, I set the `keyArgs` to a property that does not exist. As such, when navigating between pages, I've seen the same response over and over again.
+
+  - Only after setting the `keyArgs` to either `false` or some property that does change, you will see the correct results.
+
 ## Summary
 
 - In my humble opinion, the server actions are NOT yet ready for prime time and will not be for a long time.

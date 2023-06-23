@@ -2,6 +2,7 @@
 
 import { useMutation, useSuspenseQuery } from "@apollo/client";
 import { FragmentType, graphql, useFragment } from "../../generated";
+import Image from "next/image";
 import {
   PostCommentRepliesDocument,
   PostCommentReplyDocument,
@@ -26,7 +27,7 @@ export const PostComments = ({ postId }: { postId: string }) => {
   const { data, error, fetchMore } = useSuspenseQuery(PostCommentsDocument, {
     variables: {
       postId,
-      limit: 2
+      limit: 20
     }
   });
   const [isPending, startTransition] = useTransition();
@@ -37,13 +38,13 @@ export const PostComments = ({ postId }: { postId: string }) => {
   const canLoadMore = data.postComments.cursor !== null;
 
   return (
-    <>
+    <div className="post-comments">
       <ul className="list-none p-0 m-0">
         {data.postComments.comments.map((comment) => {
           return <Comment depthLevel={0} key={comment.id} comment={comment} />;
         })}
       </ul>
-      {canLoadMore ? (
+      {/* {canLoadMore ? (
         <button
           className="btn btn-neutral btn-sm"
           disabled={isPending}
@@ -59,8 +60,8 @@ export const PostComments = ({ postId }: { postId: string }) => {
         >
           Load more
         </button>
-      ) : null}
-    </>
+      ) : null} */}
+    </div>
   );
 };
 
@@ -129,13 +130,17 @@ const Comment = ({
   const formRef = useRef<HTMLFormElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  /**
+   * TODO: make the dialog singleton
+   */
+
   return (
     <>
-      <li className="p-0 m-0 relative block comment-list-item">
-        <div className={`flex not-prose gap-3 py-6 relative comment`}>
-          <div className="avatar selfstart">
+      <li className="p-0 m-0 relative block comment">
+        <div className={`flex not-prose gap-3 py-6 relative comment-item`}>
+          <div className="avatar self-start">
             <div className="w-12 h-12 rounded-full self-start">
-              <img src="https://daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg" />
+              <Image alt="" width={48} height={48} src="/avatar.jpg" />
             </div>
           </div>
           <div>
@@ -205,7 +210,7 @@ const CommentReplies = ({
   depthLevel: number;
 }) => {
   const { data, fetchMore } = useSuspenseQuery(PostCommentRepliesDocument, {
-    variables: { commentId, limit: 1 }
+    variables: { commentId, limit: 20 }
   });
   const canLoadMore = data.commentReplies.cursor !== null;
   const [isPending, startTransition] = useTransition();
@@ -216,14 +221,19 @@ const CommentReplies = ({
 
   return (
     <div>
-      <ul className={`list-none m-0 pl-${depthLevel * 3}`}>
+      <ul
+        className="list-none m-0 p-0 pl-12"
+        // style={{
+        //   paddingInlineStart: 36
+        // }}
+      >
         {data.commentReplies.replies.map((reply) => {
           return (
             <Comment depthLevel={depthLevel} comment={reply} key={reply.id} />
           );
         })}
       </ul>
-      {canLoadMore ? (
+      {/* {canLoadMore ? (
         <button
           className="btn btn-ghost btn-xs ml-1"
           disabled={isPending}
@@ -239,7 +249,7 @@ const CommentReplies = ({
         >
           + Load more
         </button>
-      ) : null}
+      ) : null} */}
     </div>
   );
 };

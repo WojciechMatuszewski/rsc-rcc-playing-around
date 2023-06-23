@@ -48,7 +48,7 @@ function makeClient() {
               }
             },
             postComments: {
-              keyArgs: ["id"],
+              keyArgs: ["postId"],
               merge(existing = {}, incoming, { readField }) {
                 const existingComments = existing.comments ?? [];
                 const incomingComments = incoming.comments ?? [];
