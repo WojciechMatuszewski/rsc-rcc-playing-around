@@ -1,15 +1,24 @@
 "use client";
 
 import { useMutation, useSuspenseQuery } from "@apollo/client";
-import { FragmentType, graphql, useFragment } from "../../generated";
 import Image from "next/image";
+import {
+  PropsWithChildren,
+  Suspense,
+  createContext,
+  useContext,
+  useId,
+  useRef,
+  useState,
+  useTransition
+} from "react";
+import { MessageCircle } from "react-feather";
+import { FragmentType, graphql, useFragment } from "../../generated";
 import {
   PostCommentRepliesDocument,
   PostCommentReplyDocument,
   PostCommentsDocument
 } from "../../generated/graphql";
-import { MessageCircle } from "react-feather";
-import { Suspense, useRef, useTransition } from "react";
 
 const PostCommentsQuery = graphql(`
   query PostComments($postId: ID!, $limit: Int!, $cursor: String) {
@@ -27,7 +36,7 @@ export const PostComments = ({ postId }: { postId: string }) => {
   const { data, error, fetchMore } = useSuspenseQuery(PostCommentsDocument, {
     variables: {
       postId,
-      limit: 20
+      limit: 2
     }
   });
   const [isPending, startTransition] = useTransition();
@@ -39,12 +48,16 @@ export const PostComments = ({ postId }: { postId: string }) => {
 
   return (
     <div className="post-comments">
-      <ul className="list-none p-0 m-0">
-        {data.postComments.comments.map((comment) => {
-          return <Comment depthLevel={0} key={comment.id} comment={comment} />;
-        })}
-      </ul>
-      {/* {canLoadMore ? (
+      <CommentReplyProvider>
+        <ul className="list-none p-0 m-0">
+          {data.postComments.comments.map((comment) => {
+            return (
+              <Comment depthLevel={0} key={comment.id} comment={comment} />
+            );
+          })}
+        </ul>
+      </CommentReplyProvider>
+      {canLoadMore ? (
         <button
           className="btn btn-neutral btn-sm"
           disabled={isPending}
@@ -60,7 +73,7 @@ export const PostComments = ({ postId }: { postId: string }) => {
         >
           Load more
         </button>
-      ) : null} */}
+      ) : null}
     </div>
   );
 };
@@ -89,9 +102,104 @@ const Comment = ({
   depthLevel: number;
 }) => {
   const { content, id } = useFragment(PostComments_CommentFragment, comment);
+  const { showReplyModal } = useCommentReplyModal();
+
+  return (
+    <>
+      <li className="p-0 m-0 relative block comment">
+        <div className={`flex not-prose gap-3 py-6 relative comment-item`}>
+          <div className="avatar self-start">
+            <div className="w-12 h-12 rounded-full self-start">
+              <Image alt="" width={48} height={48} src="/avatar.jpg" />
+            </div>
+          </div>
+          <div>
+            <p className="mb-0 bg-neutral px-3 py-2 rounded prose break-words">
+              {content}
+            </p>
+            <button
+              className="btn btn-xs btn-link text-accent no-underline -ml-2"
+              onClick={() => {
+                showReplyModal(id);
+              }}
+            >
+              Reply <MessageCircle size="14px" />
+            </button>
+          </div>
+        </div>
+        <Suspense fallback={<div className="loading loading-spinner" />}>
+          <CommentReplies depthLevel={depthLevel + 1} commentId={id} />
+        </Suspense>
+      </li>
+    </>
+  );
+};
+
+const CommentReplies = ({
+  commentId,
+  depthLevel
+}: {
+  commentId: string;
+  depthLevel: number;
+}) => {
+  const { data, fetchMore } = useSuspenseQuery(PostCommentRepliesDocument, {
+    variables: { commentId, limit: 1 }
+  });
+  const canLoadMore = data.commentReplies.cursor !== null;
+  const [isPending, startTransition] = useTransition();
+
+  if (data.commentReplies.replies.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <ul className="list-none m-0 p-0 pl-12">
+        {data.commentReplies.replies.map((reply) => {
+          return (
+            <Comment depthLevel={depthLevel} comment={reply} key={reply.id} />
+          );
+        })}
+      </ul>
+      {canLoadMore ? (
+        <button
+          className="btn btn-ghost btn-xs ml-1"
+          disabled={isPending}
+          onClick={() => {
+            startTransition(() => {
+              fetchMore({
+                variables: {
+                  cursor: data.commentReplies.cursor
+                }
+              });
+            });
+          }}
+        >
+          + Load more
+        </button>
+      ) : null}
+    </div>
+  );
+};
+
+const CommentReplyContext = createContext<{
+  showReplyModal: (commentId: string) => void;
+} | null>(null);
+
+const CommentReplyProvider = ({ children }: PropsWithChildren) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const modalId = useId();
+
+  const [commentId, setCommentId] = useState<string | null>(null);
+
   const [commentReply, { loading }] = useMutation(PostCommentReplyDocument, {
     update: (cache, { data }) => {
       if (!data) {
+        return;
+      }
+
+      if (!commentId) {
         return;
       }
 
@@ -103,7 +211,7 @@ const Comment = ({
            */
           // @ts-ignore
           variables: {
-            commentId: id
+            commentId
           }
         },
         (dataInCache) => {
@@ -127,55 +235,33 @@ const Comment = ({
     }
   });
 
-  const formRef = useRef<HTMLFormElement>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  /**
-   * TODO: make the dialog singleton
-   */
+  const showReplyModal = (commentId: string) => {
+    setCommentId(commentId);
+    dialogRef.current?.showModal();
+  };
 
   return (
     <>
-      <li className="p-0 m-0 relative block comment">
-        <div className={`flex not-prose gap-3 py-6 relative comment-item`}>
-          <div className="avatar self-start">
-            <div className="w-12 h-12 rounded-full self-start">
-              <Image alt="" width={48} height={48} src="/avatar.jpg" />
-            </div>
-          </div>
-          <div>
-            <p className="mb-0 bg-neutral px-3 py-2 rounded prose break-words">
-              {content}
-            </p>
-            <button
-              className="btn btn-xs btn-link text-accent no-underline -ml-2"
-              onClick={() => {
-                dialogRef.current?.showModal();
-              }}
-            >
-              Reply <MessageCircle size="14px" />
-            </button>
-          </div>
-        </div>
-        <Suspense fallback={<div className="loading loading-spinner" />}>
-          <CommentReplies depthLevel={depthLevel + 1} commentId={id} />
-        </Suspense>
-      </li>
-      <dialog ref={dialogRef} className="modal" id={`reply-modal-${id}`}>
+      <dialog ref={dialogRef} className="modal" id={`reply-modal-${modalId}`}>
         <form
           className="modal-box max-w-xl"
           ref={formRef}
           action={async (formData) => {
+            if (!commentId) {
+              return;
+            }
+
             await commentReply({
               variables: {
-                id,
+                id: commentId,
                 comment: {
-                  content: formData.get("content")
+                  content: formData.get("content") as string
                 }
               }
             });
             formRef.current?.reset();
             dialogRef.current?.close();
+            setCommentId(null);
           }}
         >
           <div className="flex flex-col gap-2">
@@ -198,58 +284,21 @@ const Comment = ({
           </div>
         </form>
       </dialog>
+      <CommentReplyContext.Provider value={{ showReplyModal }}>
+        {children}
+      </CommentReplyContext.Provider>
     </>
   );
 };
 
-const CommentReplies = ({
-  commentId,
-  depthLevel
-}: {
-  commentId: string;
-  depthLevel: number;
-}) => {
-  const { data, fetchMore } = useSuspenseQuery(PostCommentRepliesDocument, {
-    variables: { commentId, limit: 20 }
-  });
-  const canLoadMore = data.commentReplies.cursor !== null;
-  const [isPending, startTransition] = useTransition();
+const useCommentReplyModal = () => {
+  const context = useContext(CommentReplyContext);
 
-  if (data.commentReplies.replies.length === 0) {
-    return null;
+  if (!context) {
+    throw new Error(
+      "useCommentReplyModal must be used within a CommentReplyProvider"
+    );
   }
 
-  return (
-    <div>
-      <ul
-        className="list-none m-0 p-0 pl-12"
-        // style={{
-        //   paddingInlineStart: 36
-        // }}
-      >
-        {data.commentReplies.replies.map((reply) => {
-          return (
-            <Comment depthLevel={depthLevel} comment={reply} key={reply.id} />
-          );
-        })}
-      </ul>
-      {/* {canLoadMore ? (
-        <button
-          className="btn btn-ghost btn-xs ml-1"
-          disabled={isPending}
-          onClick={() => {
-            startTransition(() => {
-              fetchMore({
-                variables: {
-                  cursor: data.commentReplies.cursor
-                }
-              });
-            });
-          }}
-        >
-          + Load more
-        </button>
-      ) : null} */}
-    </div>
-  );
+  return context;
 };

@@ -4,6 +4,7 @@ import { graphql } from "../../generated";
 import { GetPostDocument } from "../../generated/graphql";
 import { AddComment } from "./AddComment";
 import { PostComments } from "./PostComments";
+import { PostCommentsUsingNestedQuery } from "./PostCommentsUsingNestedQuery";
 
 const GetPostQuery = graphql(`
   query GetPost($id: ID!) {
@@ -33,7 +34,8 @@ export default async function Page({
       <AddComment postId={id} />
       <div className="mt-4">
         <Suspense fallback={<div className="loading loading-spinner" />}>
-          <PostComments postId={id} />
+          <PostCommentsUsingNestedQuery postId={id} />
+          {/* <PostComments postId={id} /> */}
         </Suspense>
       </div>
     </article>

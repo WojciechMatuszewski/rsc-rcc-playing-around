@@ -115,6 +115,12 @@
 
   - Only after setting the `keyArgs` to either `false` or some property that does change, you will see the correct results.
 
+- I was a bit afraid that it is impossible to early return in the AppSync JavaScript resolvers, especially after reading [this article](https://advancedweb.hu/first-experiences-with-the-new-appsync-javascript-resolver-runtime/#-no-early-return).
+
+  - It turns out, **you can early return from AppSync JavaScript resolvers, via `runtime.earlyReturn`**.
+
+  - The early return is very handy when querying based on the parent. If the parent does not exist, it does not make any sense to perform a DynamoDB query.
+
 ## Summary
 
 - In my humble opinion, the server actions are NOT yet ready for prime time and will not be for a long time.

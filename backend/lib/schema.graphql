@@ -19,6 +19,23 @@ type Query {
     limit: Int!
     cursor: String
   ): CommentRepliesConnection!
+
+  postCommentsNested(
+    postId: ID!
+    limit: Int!
+    cursor: String
+  ): PostCommentsNestedConnection!
+}
+
+type PostCommentsNestedConnection {
+  cursor: String
+  comments: [PostCommentNested!]!
+}
+
+type PostCommentNested {
+  id: ID!
+  content: String!
+  comments(limit: Int!, cursor: String): PostCommentsNestedConnection!
 }
 
 type Mutation {

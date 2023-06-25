@@ -152,6 +152,28 @@ export class BackendStack extends cdk.Stack {
         path.join(__dirname, "./resolvers/reply-comment.ts")
       )
     });
+
+    // ---- experimentation ---- //
+
+    new JSResolver(this, "PostCommentsNestedResolver", {
+      api,
+      dataSource,
+      typeName: "Query",
+      fieldName: "postCommentsNested",
+      code: cdk.aws_appsync.AssetCode.fromAsset(
+        path.join(__dirname, "./resolvers/post-comments-nested.ts")
+      )
+    });
+
+    new JSResolver(this, "CommentRepliesNestedResolver", {
+      api,
+      dataSource,
+      typeName: "PostCommentNested",
+      fieldName: "comments",
+      code: cdk.aws_appsync.AssetCode.fromAsset(
+        path.join(__dirname, "./resolvers/post-comments-replies-nested.ts")
+      )
+    });
   }
 }
 
