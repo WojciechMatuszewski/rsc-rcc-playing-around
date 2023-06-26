@@ -1,32 +1,56 @@
-import { Context, DynamoDBPutItemRequest, util } from "@aws-appsync/utils";
+import {
+  Context,
+  DynamoDBTransactWriteItemsRequest,
+  util
+} from "@aws-appsync/utils";
 
-export function request(ctx: Context): DynamoDBPutItemRequest {
+export function request(
+  ctx: Context<{ id: string; comment: { content: string } }>
+): DynamoDBTransactWriteItemsRequest {
   const commentId = util.autoUlid();
-  const {
-    id,
-    comment: { content }
-  } = ctx.arguments;
 
   return {
-    operation: "PutItem",
-    key: util.dynamodb.toMapValues({
-      pk: `POST#${id}`,
-      sk: `COMMENT#${commentId}`
-    }),
-    attributeValues: util.dynamodb.toMapValues({
-      content
-    })
+    operation: "TransactWriteItems",
+    transactItems: [
+      {
+        table: ctx.stash.TABLE_NAME,
+        operation: "ConditionCheck",
+        key: util.dynamodb.toMapValues({
+          pk: `POST#${ctx.arguments.id}`,
+          sk: `POST#${ctx.arguments.id}`
+        }),
+        condition: {
+          expression: "attribute_exists(#pk)",
+          expressionNames: { "#pk": "pk" },
+          returnValuesOnConditionCheckFailure: false
+        }
+      },
+      {
+        table: ctx.stash.TABLE_NAME,
+        operation: "PutItem",
+        attributeValues: util.dynamodb.toMapValues({
+          content: ctx.arguments.comment.content,
+          post: `POST#${ctx.arguments.id}`
+        }),
+        key: util.dynamodb.toMapValues({
+          pk: `COMMENT#${commentId}`,
+          sk: `COMMENT#${commentId}`
+        })
+      }
+    ]
   };
 }
 
 export function response(ctx: Context) {
-  const { pk, sk, ...restOfAttributes } = ctx.result;
-  const id = sk.split("#")[1];
-  const postId = pk.split("#")[1];
+  if (ctx.result.cancellationReasons) {
+    util.error("The post does not exist");
+  }
+
+  const commentId = ctx.result.keys[1].pk.split("#")[1];
+  const content = ctx.arguments.comment.content;
 
   return {
-    id,
-    postId,
-    ...restOfAttributes
+    id: commentId,
+    content
   };
 }

@@ -1,24 +1,13 @@
 "use client";
 
-import { useMutation, useSuspenseQuery } from "@apollo/client";
+import { useLazyQuery, useSuspenseQuery } from "@apollo/client";
 import Image from "next/image";
-import {
-  PropsWithChildren,
-  Suspense,
-  createContext,
-  useContext,
-  useId,
-  useRef,
-  useState,
-  useTransition
-} from "react";
+import { useTransition } from "react";
 import { MessageCircle } from "react-feather";
-import { FragmentType, graphql, useFragment } from "../../generated";
+import { graphql } from "../../generated";
 import {
-  //   PostCommentRepliesDocument,
-  PostCommentReplyDocument,
-  PostCommentsDocument,
-  PostCommentsNestedDocument
+  PostCommentsNestedDocument,
+  PostCommentsNestedRepliesDocument
 } from "../../generated/graphql";
 
 const PostCommentsQuery = graphql(`
@@ -57,7 +46,7 @@ export const PostCommentsUsingNestedQuery = ({
     {
       variables: {
         postId,
-        limit: 5
+        limit: 1
       }
     }
   );
@@ -72,6 +61,7 @@ export const PostCommentsUsingNestedQuery = ({
     <div className="post-comments">
       <ul className="list-none p-0 m-0">
         {data.postCommentsNested.comments.map((comment) => {
+          console.log(comment);
           return <Comment depthLevel={0} key={comment.id} comment={comment} />;
         })}
       </ul>
@@ -154,6 +144,18 @@ const Comment = ({
   );
 };
 
+const PostCommentsRepliesQuery = graphql(`
+  query PostCommentsNestedReplies($postId: ID!, $limit: Int!, $cursor: String) {
+    postCommentsNested(postId: $postId, limit: $limit, cursor: $cursor) {
+      cursor
+      comments {
+        id
+        content
+      }
+    }
+  }
+`);
+
 const CommentReplies = ({
   comments,
   depthLevel
@@ -161,15 +163,12 @@ const CommentReplies = ({
   depthLevel: number;
   comments: Comment["comments"];
 }) => {
-  //   const { data, fetchMore } = useSuspenseQuery(PostCommentRepliesDocument, {
-  //     variables: { commentId, limit: 1 }
-  //   });
-  //   const canLoadMore = data.commentReplies.cursor !== null;
-  //   const [isPending, startTransition] = useTransition();
+  const [, { data, loading, fetchMore }] = useLazyQuery(
+    PostCommentsNestedRepliesDocument
+  );
 
-  //   if (data.commentReplies.replies.length === 0) {
-  //     return null;
-  //   }
+  const initialCursor = comments?.cursor;
+  const afterActionCursor = data?.postCommentsNested.cursor;
 
   return (
     <div>
@@ -184,23 +183,20 @@ const CommentReplies = ({
           );
         })}
       </ul>
-      {/* {canLoadMore ? (
-        <button
-          className="btn btn-ghost btn-xs ml-1"
-          disabled={isPending}
-          onClick={() => {
-            startTransition(() => {
-              fetchMore({
-                variables: {
-                  cursor: data.commentReplies.cursor
-                }
-              });
-            });
-          }}
-        >
-          + Load more
-        </button>
-      ) : null} */}
+      <button
+        className="btn btn-ghost btn-xs ml-1"
+        disabled={loading}
+        onClick={() => {
+          fetchMore({
+            variables: {
+              cursor: initialCursor,
+              limit: 1
+            }
+          });
+        }}
+      >
+        + Load more
+      </button>
     </div>
   );
 };

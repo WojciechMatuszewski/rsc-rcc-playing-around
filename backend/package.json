@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "scripts": {
     "deploy": "cdk deploy --require-approval never",
+    "synth": "cdk synth",
     "bootstrap": "cdk bootstrap --qualifier rscforum --toolkit-stack-name RSCForumBootstrap"
   },
   "devDependencies": {

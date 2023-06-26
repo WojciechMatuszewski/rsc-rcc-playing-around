@@ -121,6 +121,24 @@
 
   - The early return is very handy when querying based on the parent. If the parent does not exist, it does not make any sense to perform a DynamoDB query.
 
+- Apparently one cannot use `throw` in AppSync JavaScript resolvers. To yield errors, use the methods on the `util` object.
+
+- Debugging the AWS AppSync JavaScript is better than the VTL counterpart (especially due to the ability to use `console.log`), but I still find it a bit odd that, if you screw up the DynamoDB expression, the errors are silently swallowed.
+
+  - I wasted a lot of time providing the wrong name of the table to the `TransactWriteItems` operation. My guess would be that the operation should fail.
+
+    - That did not happen. Maybe the API of DynamoDB is very forgiving and does not fail for those cases?
+
+- **The DynamoDB documentation recommends using `SET` for counters, but the `SET` operation behaves differently for attributes that does not exist on the item in this context**.
+
+  - If you try to increment an attribute that does not exist on an item yet, you will get an error -> `The provided expression refers to an attribute that does not exist in the item`.
+
+    - The solution is to **combine SET with `if_not_exists`** as [described here](https://dynobase.dev/dynamodb-errors/dynamodb-atomic-counter-not-working/).
+
+- To **go around the lack of environment variables in JS AppSync resolvers, I've used the `ctx.stash`**.
+
+  - Note that we cannot use the bundler for that. When the bundler runs, the CDK tokens are not resolved yet.
+
 ## Summary
 
 - In my humble opinion, the server actions are NOT yet ready for prime time and will not be for a long time.

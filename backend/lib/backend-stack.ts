@@ -13,6 +13,15 @@ export class BackendStack extends cdk.Stack {
       billingMode: cdk.aws_dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY
     });
+
+    dataTable.addGlobalSecondaryIndex({
+      indexName: "CommentsByPost",
+      partitionKey: {
+        name: "postId",
+        type: cdk.aws_dynamodb.AttributeType.STRING
+      },
+      sortKey: { name: "sk", type: cdk.aws_dynamodb.AttributeType.STRING }
+    });
     new cdk.CfnOutput(this, "DataTableName", { value: dataTable.tableName });
 
     const api = new cdk.aws_appsync.GraphqlApi(this, "Api", {
@@ -31,37 +40,37 @@ export class BackendStack extends cdk.Stack {
 
     const dataSource = api.addDynamoDbDataSource("ds", dataTable);
 
-    const getPostsLambda = new cdk.aws_lambda_nodejs.NodejsFunction(
-      this,
-      "GetPostsLambda",
-      {
-        entry: path.join(__dirname, "./resolvers/posts.ts"),
-        handler: "handler",
-        environment: {
-          TABLE_NAME: dataTable.tableName
-        }
-      }
-    );
-    dataTable.grantReadData(getPostsLambda);
+    // const getPostsLambda = new cdk.aws_lambda_nodejs.NodejsFunction(
+    //   this,
+    //   "GetPostsLambda",
+    //   {
+    //     entry: path.join(__dirname, "./resolvers/posts.ts"),
+    //     handler: "handler",
+    //     environment: {
+    //       TABLE_NAME: dataTable.tableName
+    //     }
+    //   }
+    // );
+    // dataTable.grantReadData(getPostsLambda);
 
-    const getPostsLambdaDataSource = api.addLambdaDataSource(
-      "GetPostsLambda",
-      getPostsLambda
-    );
+    // const getPostsLambdaDataSource = api.addLambdaDataSource(
+    //   "GetPostsLambda",
+    //   getPostsLambda
+    // );
 
-    /**
-     * Implements https://stackoverflow.com/a/71320377.
-     * Note that the technique described in the above StackOverflow answer
-     * is not possible with JS Resolvers or VTL resolvers.
-     *
-     * It's because, in those environments, AppSync will automatically obfuscate the `LastEvaluatedKey`.
-     */
-    new cdk.aws_appsync.Resolver(this, "GetPostsResolver", {
-      api,
-      dataSource: getPostsLambdaDataSource,
-      typeName: "Query",
-      fieldName: "posts"
-    });
+    // /**
+    //  * Implements https://stackoverflow.com/a/71320377.
+    //  * Note that the technique described in the above StackOverflow answer
+    //  * is not possible with JS Resolvers or VTL resolvers.
+    //  *
+    //  * It's because, in those environments, AppSync will automatically obfuscate the `LastEvaluatedKey`.
+    //  */
+    // new cdk.aws_appsync.Resolver(this, "GetPostsResolver", {
+    //   api,
+    //   dataSource: getPostsLambdaDataSource,
+    //   typeName: "Query",
+    //   fieldName: "posts"
+    // });
 
     new JSResolver(this, "GetPostResolver", {
       api,
@@ -120,28 +129,21 @@ export class BackendStack extends cdk.Stack {
       fieldName: "commentPost",
       code: cdk.aws_appsync.AssetCode.fromAsset(
         path.join(__dirname, "./resolvers/comment-post.ts")
-      )
+      ),
+      environmentVariables: {
+        TABLE_NAME: dataTable.tableName
+      }
     });
 
-    new JSResolver(this, "PostCommentsResolver", {
-      api,
-      dataSource,
-      typeName: "Query",
-      fieldName: "postComments",
-      code: cdk.aws_appsync.AssetCode.fromAsset(
-        path.join(__dirname, "./resolvers/post-comments.ts")
-      )
-    });
-
-    new JSResolver(this, "CommentRepliesResolver", {
-      api,
-      dataSource,
-      typeName: "Query",
-      fieldName: "commentReplies",
-      code: cdk.aws_appsync.AssetCode.fromAsset(
-        path.join(__dirname, "./resolvers/comment-replies.ts")
-      )
-    });
+    // new JSResolver(this, "CommentRepliesResolver", {
+    //   api,
+    //   dataSource,
+    //   typeName: "Query",
+    //   fieldName: "commentReplies",
+    //   code: cdk.aws_appsync.AssetCode.fromAsset(
+    //     path.join(__dirname, "./resolvers/comment-replies.ts")
+    //   )
+    // });
 
     new JSResolver(this, "ReplyCommentResolver", {
       api,
@@ -150,39 +152,45 @@ export class BackendStack extends cdk.Stack {
       fieldName: "replyComment",
       code: cdk.aws_appsync.AssetCode.fromAsset(
         path.join(__dirname, "./resolvers/reply-comment.ts")
-      )
+      ),
+      environmentVariables: {
+        TABLE_NAME: dataTable.tableName
+      }
     });
 
-    // ---- experimentation ---- //
+    // // ---- experimentation ---- //
 
-    new JSResolver(this, "PostCommentsNestedResolver", {
-      api,
-      dataSource,
-      typeName: "Query",
-      fieldName: "postCommentsNested",
-      code: cdk.aws_appsync.AssetCode.fromAsset(
-        path.join(__dirname, "./resolvers/post-comments-nested.ts")
-      )
-    });
+    // new JSResolver(this, "PostCommentsNestedResolver", {
+    //   api,
+    //   dataSource,
+    //   typeName: "Query",
+    //   fieldName: "postCommentsNested",
+    //   code: cdk.aws_appsync.AssetCode.fromAsset(
+    //     path.join(__dirname, "./resolvers/post-comments-nested.ts")
+    //   )
+    // });
 
-    new JSResolver(this, "CommentRepliesNestedResolver", {
-      api,
-      dataSource,
-      typeName: "PostCommentNested",
-      fieldName: "comments",
-      code: cdk.aws_appsync.AssetCode.fromAsset(
-        path.join(__dirname, "./resolvers/post-comments-replies-nested.ts")
-      )
-    });
+    // new JSResolver(this, "CommentRepliesNestedResolver", {
+    //   api,
+    //   dataSource,
+    //   typeName: "PostCommentNested",
+    //   fieldName: "comments",
+    //   code: cdk.aws_appsync.AssetCode.fromAsset(
+    //     path.join(__dirname, "./resolvers/post-comments-replies-nested.ts")
+    //   )
+    // });
   }
 }
 
 interface JSResolverProps {
   code: cdk.aws_appsync.AssetCode;
-  dataSource: cdk.aws_appsync.BaseDataSource;
+  dataSource: cdk.aws_appsync.DynamoDbDataSource;
   api: cdk.aws_appsync.GraphqlApi;
   typeName: string;
   fieldName: string;
+  environmentVariables?: {
+    [key: string]: string;
+  };
 }
 
 class JSResolver extends Construct {
@@ -200,6 +208,11 @@ class JSResolver extends Construct {
       outExtension: { ".js": ".mjs" },
       external: ["@aws-appsync/utils"],
       entryPoints: [props.code.path]
+      /**
+       * We cannot use CDKs values here as they are encoded as tokens.
+       * Tokens are not resolved during synthesis and this function runs at synthesis time.
+       */
+      // define: props.environmentVariables
     });
     if (buildResult.errors.length > 0) {
       throw new Error(buildResult.errors.join("\n"));
@@ -226,7 +239,10 @@ class JSResolver extends Construct {
       pipelineConfig: [fn],
       code: cdk.aws_appsync.Code.fromInline(
         [
-          "export function request(ctx)  { return {} }",
+          `export function request(ctx)  {
+            ctx.stash["TABLE_NAME"] = "${props.environmentVariables?.TABLE_NAME}";
+            return {}
+           }`,
           "export function response(ctx) { return ctx.prev.result }"
         ].join("\n")
       ),
