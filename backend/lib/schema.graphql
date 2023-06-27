@@ -6,9 +6,9 @@ schema {
 type Query {
   posts(limit: Int!, cursor: String): PostsConnection!
 
-  post(postId: ID!): Post!
+  post(id: ID!): Post!
 
-  postComments(postId: ID!, limit: Int, cursor: String): PostCommentsConnection!
+  postComments(id: ID!, limit: Int, cursor: String): PostCommentsConnection!
 
   commentReplies(
     commentId: ID!
@@ -51,6 +51,9 @@ type PostsConnection {
 interface Comment {
   id: ID!
   content: String!
+  replies: Int!
+
+  comments(limit: Int, cursor: String): CommentRepliesConnection!
 }
 
 type PostCommentsConnection {
@@ -61,8 +64,9 @@ type PostCommentsConnection {
 type PostComment implements Comment {
   id: ID!
   content: String!
+  replies: Int!
 
-  replies(limit: Int, cursor: String): CommentRepliesConnection!
+  comments(limit: Int, cursor: String): CommentRepliesConnection!
 }
 
 input CommentInput {
@@ -75,12 +79,13 @@ input ReplyInput {
 
 type CommentRepliesConnection {
   cursor: String
-  replies: [CommentReply!]!
+  comments: [CommentReply!]!
 }
 
 type CommentReply implements Comment {
   id: ID!
   content: String!
+  replies: Int!
 
-  replies(limit: Int, cursor: String): CommentRepliesConnection!
+  comments(limit: Int, cursor: String): CommentRepliesConnection!
 }

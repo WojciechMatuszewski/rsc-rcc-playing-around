@@ -139,6 +139,12 @@
 
   - Note that we cannot use the bundler for that. When the bundler runs, the CDK tokens are not resolved yet.
 
+- AppSync did not let me to create a resolver for a field defined within an interface.
+
+  - It makes sense from a _programming language perspective_, though I think it would be neat to have `inheritResolversFromInterface` option like in the case of Apollo Server.
+
+- **Consider initializing all the numeric values up-front to their default values**. This might not be possible when your app is in production, but it will save you some time when you are developing.
+
 ## Summary
 
 - In my humble opinion, the server actions are NOT yet ready for prime time and will not be for a long time.

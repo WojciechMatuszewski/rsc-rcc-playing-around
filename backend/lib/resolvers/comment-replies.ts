@@ -1,14 +1,21 @@
-import { Context, DynamoDBQueryRequest } from "@aws-appsync/utils";
+import { Context, DynamoDBQueryRequest, runtime } from "@aws-appsync/utils";
 
 export function request(ctx: Context): DynamoDBQueryRequest {
+  if (!ctx.source.id) {
+    runtime.earlyReturn({
+      replies: [],
+      cursor: null
+    });
+  }
+
   return {
     operation: "Query",
-    index: "CommentsByPost",
+    index: "RepliesByComment",
     query: {
-      expression: "#post = :post AND begins_with(#pk, :pk)",
-      expressionNames: { "#post": "post", "#pk": "pk" },
+      expression: "#reply = :reply AND begins_with(#pk, :pk)",
+      expressionNames: { "#reply": "reply", "#pk": "pk" },
       expressionValues: {
-        ":post": { S: `POST#${ctx.arguments.id}` },
+        ":reply": { S: `COMMENT#${ctx.source.id}` },
         ":pk": { S: "COMMENT#" }
       }
     },

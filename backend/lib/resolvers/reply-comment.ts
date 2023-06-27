@@ -39,7 +39,8 @@ export function request(
         operation: "PutItem",
         attributeValues: util.dynamodb.toMapValues({
           content: ctx.arguments.comment.content,
-          reply: `COMMENT#${commentId}`
+          reply: `COMMENT#${commentId}`,
+          replies: 0
         }),
         key: util.dynamodb.toMapValues({
           pk: `COMMENT#${replyId}`,
@@ -51,8 +52,6 @@ export function request(
 }
 
 export function response(ctx: Context) {
-  console.log("HERE", ctx.result);
-
   if (ctx.result.cancellationReasons) {
     util.error("The comment does not exist");
   }

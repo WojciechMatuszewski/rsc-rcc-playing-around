@@ -17,10 +17,18 @@ export class BackendStack extends cdk.Stack {
     dataTable.addGlobalSecondaryIndex({
       indexName: "CommentsByPost",
       partitionKey: {
-        name: "postId",
+        name: "post",
         type: cdk.aws_dynamodb.AttributeType.STRING
       },
-      sortKey: { name: "sk", type: cdk.aws_dynamodb.AttributeType.STRING }
+      sortKey: { name: "pk", type: cdk.aws_dynamodb.AttributeType.STRING }
+    });
+    dataTable.addGlobalSecondaryIndex({
+      indexName: "RepliesByComment",
+      partitionKey: {
+        name: "reply",
+        type: cdk.aws_dynamodb.AttributeType.STRING
+      },
+      sortKey: { name: "pk", type: cdk.aws_dynamodb.AttributeType.STRING }
     });
     new cdk.CfnOutput(this, "DataTableName", { value: dataTable.tableName });
 
@@ -39,38 +47,6 @@ export class BackendStack extends cdk.Stack {
     new cdk.CfnOutput(this, "ApiKey", { value: api.apiKey ?? "NOT_DEFINED" });
 
     const dataSource = api.addDynamoDbDataSource("ds", dataTable);
-
-    // const getPostsLambda = new cdk.aws_lambda_nodejs.NodejsFunction(
-    //   this,
-    //   "GetPostsLambda",
-    //   {
-    //     entry: path.join(__dirname, "./resolvers/posts.ts"),
-    //     handler: "handler",
-    //     environment: {
-    //       TABLE_NAME: dataTable.tableName
-    //     }
-    //   }
-    // );
-    // dataTable.grantReadData(getPostsLambda);
-
-    // const getPostsLambdaDataSource = api.addLambdaDataSource(
-    //   "GetPostsLambda",
-    //   getPostsLambda
-    // );
-
-    // /**
-    //  * Implements https://stackoverflow.com/a/71320377.
-    //  * Note that the technique described in the above StackOverflow answer
-    //  * is not possible with JS Resolvers or VTL resolvers.
-    //  *
-    //  * It's because, in those environments, AppSync will automatically obfuscate the `LastEvaluatedKey`.
-    //  */
-    // new cdk.aws_appsync.Resolver(this, "GetPostsResolver", {
-    //   api,
-    //   dataSource: getPostsLambdaDataSource,
-    //   typeName: "Query",
-    //   fieldName: "posts"
-    // });
 
     new JSResolver(this, "GetPostResolver", {
       api,
@@ -135,15 +111,35 @@ export class BackendStack extends cdk.Stack {
       }
     });
 
-    // new JSResolver(this, "CommentRepliesResolver", {
-    //   api,
-    //   dataSource,
-    //   typeName: "Query",
-    //   fieldName: "commentReplies",
-    //   code: cdk.aws_appsync.AssetCode.fromAsset(
-    //     path.join(__dirname, "./resolvers/comment-replies.ts")
-    //   )
-    // });
+    new JSResolver(this, "PostCommentsResolver", {
+      api,
+      dataSource,
+      typeName: "Query",
+      fieldName: "postComments",
+      code: cdk.aws_appsync.AssetCode.fromAsset(
+        path.join(__dirname, "./resolvers/post-comments.ts")
+      )
+    });
+
+    new JSResolver(this, "PostCommentRepliesResolver", {
+      api,
+      dataSource,
+      typeName: "PostComment",
+      fieldName: "comments",
+      code: cdk.aws_appsync.AssetCode.fromAsset(
+        path.join(__dirname, "./resolvers/comment-replies.ts")
+      )
+    });
+
+    new JSResolver(this, "CommentReplyRepliesResolver", {
+      api,
+      dataSource,
+      typeName: "CommentReply",
+      fieldName: "comments",
+      code: cdk.aws_appsync.AssetCode.fromAsset(
+        path.join(__dirname, "./resolvers/comment-replies.ts")
+      )
+    });
 
     new JSResolver(this, "ReplyCommentResolver", {
       api,
@@ -157,28 +153,6 @@ export class BackendStack extends cdk.Stack {
         TABLE_NAME: dataTable.tableName
       }
     });
-
-    // // ---- experimentation ---- //
-
-    // new JSResolver(this, "PostCommentsNestedResolver", {
-    //   api,
-    //   dataSource,
-    //   typeName: "Query",
-    //   fieldName: "postCommentsNested",
-    //   code: cdk.aws_appsync.AssetCode.fromAsset(
-    //     path.join(__dirname, "./resolvers/post-comments-nested.ts")
-    //   )
-    // });
-
-    // new JSResolver(this, "CommentRepliesNestedResolver", {
-    //   api,
-    //   dataSource,
-    //   typeName: "PostCommentNested",
-    //   fieldName: "comments",
-    //   code: cdk.aws_appsync.AssetCode.fromAsset(
-    //     path.join(__dirname, "./resolvers/post-comments-replies-nested.ts")
-    //   )
-    // });
   }
 }
 

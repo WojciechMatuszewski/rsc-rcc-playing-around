@@ -30,7 +30,8 @@ export function request(
         operation: "PutItem",
         attributeValues: util.dynamodb.toMapValues({
           content: ctx.arguments.comment.content,
-          post: `POST#${ctx.arguments.id}`
+          post: `POST#${ctx.arguments.id}`,
+          replies: 0
         }),
         key: util.dynamodb.toMapValues({
           pk: `COMMENT#${commentId}`,
@@ -40,6 +41,8 @@ export function request(
     ]
   };
 }
+
+// 01H3XGQAHAM2J4Q5SPD0F21NBT
 
 export function response(ctx: Context) {
   if (ctx.result.cancellationReasons) {
