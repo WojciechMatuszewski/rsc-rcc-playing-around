@@ -4,7 +4,7 @@ schema {
 }
 
 type Query {
-  posts(limit: Int!, cursor: String): PostsConnection!
+  posts(limit: Int, cursor: String): PostsConnection!
 
   post(id: ID!): Post!
 

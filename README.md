@@ -145,6 +145,24 @@
 
 - **Consider initializing all the numeric values up-front to their default values**. This might not be possible when your app is in production, but it will save you some time when you are developing.
 
+- While the **AppSync eslint rules are nice, they are not "bulletproof"**. I was trying to use **the `new Date` but the CFN deployment was failing**.
+
+  - It appears that the `new Date` is not supported.
+
+- It is **quite interesting that using the `PutItem` operation in AppSync resolvers returns the data from DynamoDB**.
+
+  - This is **not the default behavior of this operation**. As per documentation
+
+    > The attribute values as they appeared before the PutItem operation, but only if ReturnValues is specified as ALL_OLD in the request. Each element consists of an attribute name and an attribute value.
+
+    This means that **unless you are overriding an item, you should not get any data from DynamoDB**. AppSync must be doing some magic behind the scenes.
+
+  - **The same thing applies to DynamoDB `TransactWrite` call**.
+
+    - If performed via the SDK, the DynamoDB will NOT return you any data related to insertions/deletions. That is not the case with AppSync.
+
+      - AppSync will return the `keys` array that holds the primary/sort keys.
+
 ## Summary
 
 - In my humble opinion, the server actions are NOT yet ready for prime time and will not be for a long time.

@@ -56,11 +56,16 @@ export function response(ctx: Context) {
     util.error("The comment does not exist");
   }
 
+  /**
+   * Only the keys are returned from the transaction.
+   * This behavior differs from the DynamoDB SDK/API.
+   */
   const replyId = ctx.result.keys[1].sk.split("#")[1];
   const content = ctx.arguments.comment.content;
 
   return {
     id: replyId,
-    content
+    content,
+    replies: 0
   };
 }

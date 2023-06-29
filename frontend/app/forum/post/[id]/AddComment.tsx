@@ -6,11 +6,10 @@ import { useRef } from "react";
 import { CommentPostDocument } from "../../generated/graphql";
 
 const CommentPostMutation = graphql(`
-  mutation CommentPost($postId: ID!, $input: CommentInput!) {
-    commentPost(id: $postId, comment: $input) {
+  mutation CommentPost($id: ID!, $input: CommentInput!) {
+    commentPost(id: $id, comment: $input) {
       id
       content
-      postId
     }
   }
 `);
@@ -18,26 +17,26 @@ const CommentPostMutation = graphql(`
 export const AddComment = ({ postId }: { postId: string }) => {
   const [commentPost, { loading }] = useMutation(CommentPostDocument, {
     update(cache, { data }) {
-      if (!data) {
-        return;
-      }
-      const { commentPost } = data;
-      cache.modify({
-        fields: {
-          postComments(
-            existingCommentsData = { comments: [] },
-            { toReference }
-          ) {
-            return {
-              ...existingCommentsData,
-              comments: [
-                toReference(commentPost),
-                ...existingCommentsData.comments
-              ]
-            };
-          }
-        }
-      });
+      // if (!data) {
+      //   return;
+      // }
+      // const { commentPost } = data;
+      // cache.modify({
+      //   fields: {
+      //     postComments(
+      //       existingCommentsData = { comments: [] },
+      //       { toReference }
+      //     ) {
+      //       return {
+      //         ...existingCommentsData,
+      //         comments: [
+      //           toReference(commentPost),
+      //           ...existingCommentsData.comments
+      //         ]
+      //       };
+      //     }
+      //   }
+      // });
     }
   });
   const formRef = useRef<HTMLFormElement>(null);
@@ -48,7 +47,7 @@ export const AddComment = ({ postId }: { postId: string }) => {
       action={async (formData) => {
         await commentPost({
           variables: {
-            postId: postId,
+            id: postId,
             input: {
               content: formData.get("content")
             }

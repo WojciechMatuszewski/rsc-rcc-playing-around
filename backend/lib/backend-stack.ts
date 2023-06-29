@@ -30,6 +30,14 @@ export class BackendStack extends cdk.Stack {
       },
       sortKey: { name: "pk", type: cdk.aws_dynamodb.AttributeType.STRING }
     });
+    dataTable.addGlobalSecondaryIndex({
+      indexName: "PostsByEpoch",
+      partitionKey: {
+        name: "postsPk",
+        type: cdk.aws_dynamodb.AttributeType.STRING
+      },
+      sortKey: { name: "postsSk", type: cdk.aws_dynamodb.AttributeType.NUMBER }
+    });
     new cdk.CfnOutput(this, "DataTableName", { value: dataTable.tableName });
 
     const api = new cdk.aws_appsync.GraphqlApi(this, "Api", {
@@ -55,6 +63,16 @@ export class BackendStack extends cdk.Stack {
       fieldName: "post",
       code: cdk.aws_appsync.AssetCode.fromAsset(
         path.join(__dirname, "./resolvers/post.ts")
+      )
+    });
+
+    new JSResolver(this, "PostsResolver", {
+      api,
+      dataSource,
+      typeName: "Query",
+      fieldName: "posts",
+      code: cdk.aws_appsync.AssetCode.fromAsset(
+        path.join(__dirname, "./resolvers/posts.ts")
       )
     });
 
