@@ -139,23 +139,23 @@ export class BackendStack extends cdk.Stack {
       )
     });
 
-    new JSResolver(this, "PostCommentRepliesResolver", {
+    new JSResolver(this, "CommentsResolver", {
       api,
       dataSource,
       typeName: "PostComment",
       fieldName: "comments",
       code: cdk.aws_appsync.AssetCode.fromAsset(
-        path.join(__dirname, "./resolvers/comment-replies.ts")
+        path.join(__dirname, "./resolvers/comments.ts")
       )
     });
 
-    new JSResolver(this, "CommentReplyRepliesResolver", {
+    new JSResolver(this, "PostCommentResolver", {
       api,
       dataSource,
-      typeName: "CommentReply",
-      fieldName: "comments",
+      typeName: "Query",
+      fieldName: "postComment",
       code: cdk.aws_appsync.AssetCode.fromAsset(
-        path.join(__dirname, "./resolvers/comment-replies.ts")
+        path.join(__dirname, "./resolvers/post-comment.ts")
       )
     });
 

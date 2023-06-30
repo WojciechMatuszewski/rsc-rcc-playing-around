@@ -1,8 +1,9 @@
 "use client";
 
-import { useMutation, useSuspenseQuery } from "@apollo/client";
+import { useLazyQuery, useMutation, useSuspenseQuery } from "@apollo/client";
 import { FragmentType, graphql, useFragment } from "../../generated";
 import {
+  PostCommentDocument,
   PostCommentsDocument,
   PostComments_CommentFragmentDoc,
   ReplyCommentDocument
@@ -56,15 +57,7 @@ export const PostComments = ({ postId }: { postId: string }) => {
         <CommentReplyProvider>
           {data.postComments.comments.map((comment) => {
             return (
-              <Comment
-                depthLevel={0}
-                key={comment.id}
-                comment={{
-                  ...comment,
-                  comments: comment.comments.comments,
-                  cursor: comment.comments.cursor
-                }}
-              />
+              <Comment depthLevel={0} key={comment.id} comment={comment} />
             );
           })}
         </CommentReplyProvider>
@@ -90,13 +83,30 @@ export const PostComments = ({ postId }: { postId: string }) => {
   );
 };
 
+const PostCommentQuery = graphql(`
+  query PostComment($id: ID!, $cursor: String, $limit: Int) {
+    postComment(id: $id) {
+      id
+      comments(cursor: $cursor, limit: $limit) {
+        cursor
+        comments {
+          id
+          ...PostComments_Comment
+        }
+      }
+    }
+  }
+`);
+
 const Comment = ({
   comment,
   depthLevel
 }: {
   comment: FragmentType<typeof PostComments_Comment> & {
-    cursor?: string | null;
-    comments: FragmentType<typeof PostComments_Comment>[];
+    comments?: {
+      cursor?: string | null;
+      comments: FragmentType<typeof PostComments_Comment>[];
+    };
   };
   depthLevel: number;
 }) => {
@@ -106,6 +116,14 @@ const Comment = ({
   );
   const { showReplyModal } = useCommentReplyModal();
 
+  const [fetchComments, { data, loading, error, fetchMore }] =
+    useLazyQuery(PostCommentDocument);
+
+  const fetchedComments = data?.postComment.comments.comments ?? [];
+  const initialComments = comment.comments?.comments ?? [];
+  const allComments = [...initialComments, ...fetchedComments];
+
+  const canRenderNestedComments = replies > 0 && allComments.length > 0;
   return (
     <>
       <li className="p-0 m-0 relative block comment">
@@ -129,12 +147,40 @@ const Comment = ({
             </button>
           </div>
         </div>
+        {canRenderNestedComments ? (
+          <ul className="list-none m-0 p-0 pl-12">
+            {allComments.map((comment) => {
+              return (
+                <Comment
+                  key={comment.id}
+                  depthLevel={depthLevel + 1}
+                  comment={comment}
+                />
+              );
+            })}
+          </ul>
+        ) : null}
         {replies > 0 ? (
-          <CommentReplies
-            depthLevel={depthLevel + 1}
-            comments={comment.comments}
-            cursor={comment.cursor}
-          />
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs"
+            onClick={() => {
+              console.log({
+                variables: {
+                  cursor: data?.postComment.comments.cursor,
+                  id: id
+                }
+              });
+              fetchComments({
+                variables: {
+                  cursor: data?.postComment.comments.cursor,
+                  id: id
+                }
+              });
+            }}
+          >
+            Load replies
+          </button>
         ) : null}
       </li>
     </>
@@ -146,26 +192,30 @@ const CommentReplies = ({
   depthLevel
 }: {
   depthLevel: number;
-  comments: FragmentType<typeof PostComments_Comment>[];
-  cursor?: string | null;
+  comments: {
+    cursor?: string | null;
+    comments: FragmentType<typeof PostComments_Comment>[];
+  };
 }) => {
-  // const [, { data, loading, fetchMore }] = useLazyQuery(
-  //   PostCommentsNestedRepliesDocument
-  // );
+  const [fetchComments, { data, loading, fetchMore }] =
+    useLazyQuery(PostCommentDocument);
 
-  // const initialCursor = comments?.cursor;
-  // const afterActionCursor = data?.postCommentsNested.cursor;
+  const fetchedComments = data?.postComment.comments.comments ?? [];
+  const allComments = [...comments.comments, ...fetchedComments];
 
   return (
     <div>
       <ul className="list-none m-0 p-0 pl-12">
-        {comments.map((comment) => {
+        {comments.comments.map((comment) => {
           return (
             <Comment
               depthLevel={depthLevel}
               comment={{
                 ...comment,
-                comments: []
+                comments: {
+                  comments: allComments,
+                  cursor: data?.postComment.comments.cursor
+                }
               }}
               key={"1"}
             />
