@@ -16,7 +16,8 @@ import {
   useContext,
   useId,
   useRef,
-  useState
+  useState,
+  useTransition
 } from "react";
 
 const PostComments_Comment = graphql(`
@@ -28,13 +29,18 @@ const PostComments_Comment = graphql(`
 `);
 
 const PostCommentsQuery = graphql(`
-  query PostComments($id: ID!) {
-    postComments(id: $id) {
+  query PostComments(
+    $id: ID!
+    $cursor: String
+    $limitSameLevel: Int
+    $limitNextLevel: Int
+  ) {
+    postComments(id: $id, cursor: $cursor, limit: $limitSameLevel) {
       cursor
       comments {
         id
         ...PostComments_Comment
-        comments {
+        comments(limit: $limitNextLevel) {
           cursor
           comments {
             id
@@ -47,51 +53,100 @@ const PostCommentsQuery = graphql(`
 `);
 
 export const PostComments = ({ postId }: { postId: string }) => {
-  const { data, error } = useSuspenseQuery(PostCommentsDocument, {
-    variables: { id: postId }
+  const { data, error, fetchMore } = useSuspenseQuery(PostCommentsDocument, {
+    variables: { id: postId, limitSameLevel: 1, limitNextLevel: 1 }
   });
 
+  const canFetchMore = data?.postComments.cursor != null;
+  const [isPending, startTransition] = useTransition();
+
   return (
-    <div className="post-comments">
-      <ul className="list-none p-0 m-0">
-        <CommentReplyProvider>
-          {data.postComments.comments.map((comment) => {
-            return (
-              <Comment depthLevel={0} key={comment.id} comment={comment} />
-            );
-          })}
-        </CommentReplyProvider>
-      </ul>
-      {/* {canLoadMore ? (
-        <button
-          className="btn btn-neutral btn-sm"
-          disabled={isPending}
-          onClick={() => {
+    <div className="post-comments -ml-12">
+      <CommentReplyProvider>
+        <CommentsList
+          isLoadingMore={isPending}
+          comments={data.postComments.comments}
+          canFetchMore={canFetchMore}
+          onFetchMore={() => {
             startTransition(() => {
               fetchMore({
                 variables: {
-                  cursor: data.postComments.cursor
+                  cursor: data.postComments.cursor,
+                  limitNextLevel: 1,
+                  limitSameLevel: 1
                 }
               });
             });
           }}
-        >
-          Load more
-        </button>
-      ) : null} */}
+          depthLevel={0}
+        />
+      </CommentReplyProvider>
     </div>
   );
 };
 
+const CommentsList = ({
+  comments,
+  canFetchMore,
+  onFetchMore,
+  depthLevel,
+  isLoadingMore
+}: {
+  comments: FragmentType<typeof PostComments_Comment>[];
+  canFetchMore: boolean;
+  onFetchMore: VoidFunction;
+  depthLevel: number;
+  isLoadingMore: boolean;
+}) => {
+  return (
+    <>
+      <ul className="list-none m-0 p-0 pl-12">
+        {comments.map((comment) => {
+          return (
+            <Comment
+              depthLevel={depthLevel}
+              key={comment.id}
+              comment={comment}
+            />
+          );
+        })}
+      </ul>
+      {canFetchMore ? (
+        <button
+          className="btn btn-neutral btn-xs ml-12 block -mt-3"
+          disabled={isLoadingMore}
+          onClick={() => {
+            onFetchMore();
+          }}
+        >
+          Load more
+        </button>
+      ) : null}
+    </>
+  );
+};
+
 const PostCommentQuery = graphql(`
-  query PostComment($id: ID!, $cursor: String, $limit: Int) {
+  query PostComment(
+    $id: ID!
+    $cursor: String
+    $limitSameLevel: Int
+    $limitNextLevel: Int
+  ) {
     postComment(id: $id) {
       id
-      comments(cursor: $cursor, limit: $limit) {
+      comments(cursor: $cursor, limit: $limitSameLevel) {
         cursor
         comments {
           id
           ...PostComments_Comment
+          comments(limit: $limitNextLevel) {
+            cursor
+            comments {
+              id
+              ...PostComments_Comment
+            }
+          }
         }
       }
     }
@@ -116,14 +171,43 @@ const Comment = ({
   );
   const { showReplyModal } = useCommentReplyModal();
 
-  const [fetchComments, { data, loading, error, fetchMore }] =
+  const [fetchComments, { data, loading, error, fetchMore, called }] =
     useLazyQuery(PostCommentDocument);
+
+  const hasReplies = replies > 0;
+
+  const initialCursor = comment.comments?.cursor;
+  const fetchedCursor = data?.postComment.comments.cursor;
+  const canFetchMore = called
+    ? fetchedCursor != null
+    : hasReplies && replies > 1;
+
+  const handleOnFetchMore = () => {
+    if (!called) {
+      return fetchComments({
+        variables: {
+          cursor: initialCursor,
+          limitNextLevel: 1,
+          limitSameLevel: 1,
+          id
+        }
+      });
+    }
+
+    return fetchMore({
+      variables: {
+        cursor: fetchedCursor,
+        limitNextLevel: 1,
+        limitSameLevel: 1,
+        id
+      }
+    });
+  };
 
   const fetchedComments = data?.postComment.comments.comments ?? [];
   const initialComments = comment.comments?.comments ?? [];
   const allComments = [...initialComments, ...fetchedComments];
 
-  const canRenderNestedComments = replies > 0 && allComments.length > 0;
   return (
     <>
       <li className="p-0 m-0 relative block comment">
@@ -136,6 +220,8 @@ const Comment = ({
           <div>
             <p className="mb-0 bg-neutral px-3 py-2 rounded prose break-words">
               {content}
+              <br />
+              <span className="text-xs">{id}</span>
             </p>
             <button
               className="btn btn-xs btn-link text-accent no-underline -ml-2"
@@ -147,96 +233,17 @@ const Comment = ({
             </button>
           </div>
         </div>
-        {canRenderNestedComments ? (
-          <ul className="list-none m-0 p-0 pl-12">
-            {allComments.map((comment) => {
-              return (
-                <Comment
-                  key={comment.id}
-                  depthLevel={depthLevel + 1}
-                  comment={comment}
-                />
-              );
-            })}
-          </ul>
-        ) : null}
-        {replies > 0 ? (
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs"
-            onClick={() => {
-              console.log({
-                variables: {
-                  cursor: data?.postComment.comments.cursor,
-                  id: id
-                }
-              });
-              fetchComments({
-                variables: {
-                  cursor: data?.postComment.comments.cursor,
-                  id: id
-                }
-              });
-            }}
-          >
-            Load replies
-          </button>
+        {allComments.length > 0 ? (
+          <CommentsList
+            isLoadingMore={loading}
+            comments={allComments}
+            depthLevel={depthLevel + 1}
+            canFetchMore={canFetchMore}
+            onFetchMore={handleOnFetchMore}
+          />
         ) : null}
       </li>
     </>
-  );
-};
-
-const CommentReplies = ({
-  comments,
-  depthLevel
-}: {
-  depthLevel: number;
-  comments: {
-    cursor?: string | null;
-    comments: FragmentType<typeof PostComments_Comment>[];
-  };
-}) => {
-  const [fetchComments, { data, loading, fetchMore }] =
-    useLazyQuery(PostCommentDocument);
-
-  const fetchedComments = data?.postComment.comments.comments ?? [];
-  const allComments = [...comments.comments, ...fetchedComments];
-
-  return (
-    <div>
-      <ul className="list-none m-0 p-0 pl-12">
-        {comments.comments.map((comment) => {
-          return (
-            <Comment
-              depthLevel={depthLevel}
-              comment={{
-                ...comment,
-                comments: {
-                  comments: allComments,
-                  cursor: data?.postComment.comments.cursor
-                }
-              }}
-              key={"1"}
-            />
-          );
-        })}
-      </ul>
-      {/* <button
-        className="btn btn-ghost btn-xs ml-1"
-        disabled={loading}
-        onClick={() => {
-          fetchMore({
-            variables: {
-              cursor: initialCursor,
-              limit: 1
-            }
-          });
-        }}
-      >
-        + Load more
-      </button> */}
-    </div>
   );
 };
 

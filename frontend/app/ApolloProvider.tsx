@@ -27,54 +27,48 @@ function makeClient() {
   return new ApolloClient({
     // use the `NextSSRInMemoryCache`, not the normal `InMemoryCache`
     cache: new NextSSRInMemoryCache({
-      possibleTypes: { Comment: ["PostComment", "CommentReply"] },
+      possibleTypes: { Comment: ["PostComment"] },
+
+      // TODO: how do I update the cache?
 
       typePolicies: {
-        Query: {
+        // Query: {
+        //   fields: {
+        //     postComments: {
+        //       keyArgs: false,
+        //       merge(existing = { comments: [] }, incoming, { args }) {
+        //         console.log("postComments on a query", { existing, incoming });
+        //         return {
+        //           ...incoming,
+        //           comments: [...existing.comments, ...incoming.comments]
+        //         };
+        //       }
+        //     }
+        //   }
+        // },
+        Comment: {
+          keyFields: ["id"],
           fields: {
-            posts: {
-              keyArgs: false,
-              merge(existing = {}, incoming, { readField }) {
-                const existingPosts = existing.posts ?? [];
-                const incomingPosts = incoming.posts ?? [];
-                const result = {
-                  /**
-                   * Typename was missing so the fragments did not resolve.
-                   */
+            comments: {
+              keyArgs: (args, context) => {
+                if (!context.variables?.id) {
+                  throw new Error("id is required");
+                }
+
+                return `comments-${context.variables.id}`;
+              },
+              merge(existing = { comments: [] }, incoming, { args }) {
+                const mergeResult = {
                   ...incoming,
-                  posts: [...existingPosts, ...incomingPosts]
+                  comments: [...existing.comments, ...incoming.comments]
                 };
-                return result;
-              }
-            },
-            postComments: {
-              keyArgs: ["postId"],
-              merge(existing = {}, incoming, { readField }) {
-                const existingComments = existing.comments ?? [];
-                const incomingComments = incoming.comments ?? [];
-                const result = {
-                  /**
-                   * Typename was missing so the fragments did not resolve.
-                   */
-                  ...incoming,
-                  comments: [...existingComments, ...incomingComments]
-                };
-                return result;
-              }
-            },
-            commentReplies: {
-              keyArgs: ["commentId"],
-              merge(existing = {}, incoming, { readField }) {
-                const existingReplies = existing.replies ?? [];
-                const incomingReplies = incoming.replies ?? [];
-                const result = {
-                  /**
-                   * Typename was missing so the fragments did not resolve.
-                   */
-                  ...incoming,
-                  replies: [...existingReplies, ...incomingReplies]
-                };
-                return result;
+
+                console.log("comments on a comment", {
+                  existing,
+                  incoming,
+                  mergeResult
+                });
+                return mergeResult;
               }
             }
           }
