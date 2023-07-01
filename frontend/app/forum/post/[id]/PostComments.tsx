@@ -1,6 +1,11 @@
 "use client";
 
-import { useLazyQuery, useMutation, useSuspenseQuery } from "@apollo/client";
+import {
+  useLazyQuery,
+  useMutation,
+  useQuery,
+  useSuspenseQuery
+} from "@apollo/client";
 import { FragmentType, graphql, useFragment } from "../../generated";
 import {
   PostCommentDocument,
@@ -14,6 +19,7 @@ import {
   PropsWithChildren,
   createContext,
   useContext,
+  useEffect,
   useId,
   useRef,
   useState,
@@ -53,30 +59,39 @@ const PostCommentsQuery = graphql(`
 `);
 
 export const PostComments = ({ postId }: { postId: string }) => {
-  const { data, error, fetchMore } = useSuspenseQuery(PostCommentsDocument, {
+  /**
+   * For some unknown reason, the `SuspenseQuery`
+   * caused a re-mount of the list component, even though I wrapped the `fetchMore` with `startTransition`.
+   */
+  const { data, error, fetchMore, loading } = useQuery(PostCommentsDocument, {
     variables: { id: postId, limitSameLevel: 1, limitNextLevel: 1 }
   });
 
   const canFetchMore = data?.postComments.cursor != null;
   const [isPending, startTransition] = useTransition();
 
+  if (loading || !data?.postComments) {
+    return <div className="loading loading-spinner" />;
+  }
+
   return (
     <div className="post-comments -ml-12">
       <CommentReplyProvider>
         <CommentsList
+          key={postId}
           isLoadingMore={isPending}
           comments={data.postComments.comments}
           canFetchMore={canFetchMore}
           onFetchMore={() => {
-            startTransition(() => {
-              fetchMore({
-                variables: {
-                  cursor: data.postComments.cursor,
-                  limitNextLevel: 1,
-                  limitSameLevel: 1
-                }
-              });
+            // startTransition(() => {
+            fetchMore({
+              variables: {
+                cursor: data.postComments.cursor,
+                limitNextLevel: 1,
+                limitSameLevel: 1
+              }
             });
+            // });
           }}
           depthLevel={0}
         />
@@ -98,6 +113,11 @@ const CommentsList = ({
   depthLevel: number;
   isLoadingMore: boolean;
 }) => {
+  useEffect(() => {
+    return () => {
+      console.log("unmounting");
+    };
+  }, []);
   return (
     <>
       <ul className="list-none m-0 p-0 pl-12">
@@ -113,6 +133,7 @@ const CommentsList = ({
       </ul>
       {canFetchMore ? (
         <button
+          type="button"
           className="btn btn-neutral btn-xs ml-12 block -mt-3"
           disabled={isLoadingMore}
           onClick={() => {
@@ -235,6 +256,7 @@ const Comment = ({
         </div>
         {allComments.length > 0 ? (
           <CommentsList
+            key={id}
             isLoadingMore={loading}
             comments={allComments}
             depthLevel={depthLevel + 1}

@@ -12,6 +12,12 @@ import {
   SSRMultipartLink
 } from "@apollo/experimental-nextjs-app-support/ssr";
 
+import { loadErrorMessages, loadDevMessages } from "@apollo/client/dev";
+
+// Adds messages only in a dev environment
+// loadDevMessages();
+// loadErrorMessages();
+
 // have a function to create a client for you
 function makeClient() {
   const httpLink = new HttpLink({
@@ -25,6 +31,7 @@ function makeClient() {
   });
 
   return new ApolloClient({
+    connectToDevTools: true,
     // use the `NextSSRInMemoryCache`, not the normal `InMemoryCache`
     cache: new NextSSRInMemoryCache({
       possibleTypes: { Comment: ["PostComment"] },
@@ -32,20 +39,32 @@ function makeClient() {
       // TODO: how do I update the cache?
 
       typePolicies: {
-        // Query: {
-        //   fields: {
-        //     postComments: {
-        //       keyArgs: false,
-        //       merge(existing = { comments: [] }, incoming, { args }) {
-        //         console.log("postComments on a query", { existing, incoming });
-        //         return {
-        //           ...incoming,
-        //           comments: [...existing.comments, ...incoming.comments]
-        //         };
-        //       }
-        //     }
-        //   }
-        // },
+        Query: {
+          fields: {
+            postComments: {
+              keyArgs: (args) => {
+                return `post-comment-${args.id}`;
+              },
+              merge: (
+                existing = { comments: [] },
+                incoming,
+                { args, mergeObjects, cache }
+              ) => {
+                const mergeResult = {
+                  ...incoming,
+                  comments: [...existing.comments, ...incoming.comments]
+                };
+                console.log(cache.extract());
+                // console.log({
+                //   mergeResult,
+                //   existing,
+                //   incoming
+                // });
+                return mergeResult;
+              }
+            }
+          }
+        },
         Comment: {
           keyFields: ["id"],
           fields: {
